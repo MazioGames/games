@@ -1,1 +1,349 @@
 
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gioco del Dado e Griglia</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        h1 {
+            font-size: 1.4rem;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        /* Legenda Regole */
+        .legend-table {
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 15px;
+            width: 100%;
+            max-width: 360px;
+        }
+
+        .legend-table th, .legend-table td {
+            border: 1px solid #ddd;
+            padding: 6px 4px;
+            text-align: center;
+            font-size: 0.9rem;
+            width: 16.66%;
+        }
+
+        .legend-table th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+        }
+
+        .arrow {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #222;
+        }
+
+        /* Status & controlli */
+        .controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            width: 100%;
+            max-width: 360px;
+        }
+
+        .turn-indicator {
+            font-size: 1.1rem;
+            font-weight: bold;
+            padding: 6px 12px;
+            border-radius: 20px;
+            color: white;
+            transition: background-color 0.3s;
+        }
+
+        .p1-turn { background-color: #e91e63; }
+        .p2-turn { background-color: #2196f3; }
+
+        .dice-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            color: white;
+            background-color: #4caf50;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+            cursor: pointer;
+            active: transform 0.95;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            box-shadow: none;
+        }
+
+        .dice-result {
+            font-size: 1.8rem;
+            font-weight: bold;
+            width: 45px;
+            height: 45px;
+            background: white;
+            border: 2px solid #333;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Canvas per la griglia */
+        canvas {
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            touch-action: none;
+        }
+
+        .restart-btn {
+            margin-top: 15px;
+            background-color: #757575;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Corsa sulla Griglia</h1>
+
+    <!-- Tabella Legenda Mosse -->
+    <table class="legend-table">
+        <tr>
+            <th>1</th>
+            <th>2</th>
+            <th>3</th>
+            <th>4</th>
+            <th>5</th>
+            <th>6</th>
+        </tr>
+        <tr>
+            <td class="arrow">&darr;</td>
+            <td class="arrow">&nearr;</td>
+            <td class="arrow">&searr;</td>
+            <td class="arrow">&larr;</td>
+            <td class="arrow">&swarr;</td>
+            <td class="arrow">&darr;</td>
+        </tr>
+    </table>
+
+    <!-- Controlli del Gioco -->
+    <div class="controls">
+        <div id="turnIndicator" class="turn-indicator p1-turn">Turno: Giocatore 1 (Rosa)</div>
+        <div class="dice-container">
+            <button id="rollBtn" onclick="rollDice()">Tira il Dado 🎲</button>
+            <div id="diceVal" class="dice-result">-</div>
+        </div>
+    </div>
+
+    <!-- Canvas di gioco -->
+    <canvas id="gameCanvas" width="350" height="450"></canvas>
+
+    <button class="restart-btn" onclick="initGame()">Ricomincia Partita</button>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Configurazione Griglia (7 colonne, 9 righe di punti)
+        const COLS = 7;
+        const ROWS = 9;
+        const PADDING = 35;
+        const SPACING_X = (canvas.width - PADDING * 2) / (COLS - 1);
+        const SPACING_Y = (canvas.height - PADDING * 2) / (ROWS - 1);
+
+        // Mappatura movimenti del dado (dx, dy)
+        // 1: ↓ (0,1), 2: ↗ (1,-1), 3: ↘ (1,1), 4: ← (-1,0), 5: ↙ (-1,1), 6: ↓ (0,1)
+        const moves = {
+            1: { dx: 0, dy: 1 },
+            2: { dx: 1, dy: -1 },
+            3: { dx: 1, dy: 1 },
+            4: { dx: -1, dy: 0 },
+            5: { dx: -1, dy: 1 },
+            6: { dx: 0, dy: 1 }
+        };
+
+        // Stato di gioco
+        let turn = 1; // 1 = P1 (Rosa), 2 = P2 (Blu)
+        let diceValue = null;
+        let gameOver = false;
+
+        // Posizioni iniziali (colonna, riga)
+        let p1Path = [{ col: 2, row: 1 }]; // Giocatore 1
+        let p2Path = [{ col: 4, row: 1 }]; // Giocatore 2
+
+        function initGame() {
+            turn = 1;
+            diceValue = null;
+            gameOver = false;
+            p1Path = [{ col: 2, row: 1 }];
+            p2Path = [{ col: 4, row: 1 }];
+            
+            document.getElementById('diceVal').innerText = '-';
+            document.getElementById('rollBtn').disabled = false;
+            updateTurnUI();
+            drawBoard();
+        }
+
+        function updateTurnUI() {
+            const ind = document.getElementById('turnIndicator');
+            if (turn === 1) {
+                ind.innerText = "Turno: Giocatore 1 (Rosa)";
+                ind.className = "turn-indicator p1-turn";
+            } else {
+                ind.innerText = "Turno: Giocatore 2 (Blu)";
+                ind.className = "turn-indicator p2-turn";
+            }
+        }
+
+        function rollDice() {
+            if (gameOver) return;
+
+            // Animazione semplice dado
+            let count = 0;
+            const rollBtn = document.getElementById('rollBtn');
+            rollBtn.disabled = true;
+
+            const interval = setInterval(() => {
+                const randomRoll = Math.floor(Math.random() * 6) + 1;
+                document.getElementById('diceVal').innerText = randomRoll;
+                count++;
+                if (count > 8) {
+                    clearInterval(interval);
+                    diceValue = randomRoll;
+                    makeMove(diceValue);
+                }
+            }, 50);
+        }
+
+        function makeMove(val) {
+            const move = moves[val];
+            const currentPath = turn === 1 ? p1Path : p2Path;
+            const lastPos = currentPath[currentPath.length - 1];
+
+            let newCol = lastPos.col + move.dx;
+            let newRow = lastPos.row + move.dy;
+
+            // Limita il movimento all'interno dei bordi della griglia
+            newCol = Math.max(0, Math.min(COLS - 1, newCol));
+            newRow = Math.max(0, Math.min(ROWS - 1, newRow));
+
+            // Aggiungi nuova posizione al percorso
+            currentPath.push({ col: newCol, row: newRow });
+
+            drawBoard();
+
+            // Controllo Vittoria (se raggiunge l'ultima riga in basso)
+            if (newRow === ROWS - 1) {
+                gameOver = true;
+                const winnerText = turn === 1 ? "Giocatore 1 (Rosa)" : "Giocatore 2 (Blu)";
+                setTimeout(() => {
+                    alert(`🎉 Ha vinto il ${winnerText}!`);
+                }, 100);
+                return;
+            }
+
+            // Cambia Turno
+            turn = turn === 1 ? 2 : 1;
+            updateTurnUI();
+            document.getElementById('rollBtn').disabled = false;
+        }
+
+        function getCanvasCoords(col, row) {
+            return {
+                x: PADDING + col * SPACING_X,
+                y: PADDING + row * SPACING_Y
+            };
+        }
+
+        function drawBoard() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Disegna i punti della griglia
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const pos = getCanvasCoords(c, r);
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = '#444';
+                    ctx.fill();
+                }
+            }
+
+            // 2. Disegna percorso Giocatore 1 (Rosa)
+            drawPath(p1Path, '#e91e63');
+
+            // 3. Disegna percorso Giocatore 2 (Blu)
+            drawPath(p2Path, '#2196f3');
+        }
+
+        function drawPath(path, color) {
+            if (path.length === 0) return;
+
+            // Disegna linee
+            ctx.beginPath();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            const start = getCanvasCoords(path[0].col, path[0].row);
+            ctx.moveTo(start.x, start.y);
+
+            for (let i = 1; i < path.length; i++) {
+                const pt = getCanvasCoords(path[i].col, path[i].row);
+                ctx.lineTo(pt.x, pt.y);
+            }
+            ctx.stroke();
+
+            // Evidenzia punto di partenza (cerchietto concentrico)
+            ctx.beginPath();
+            ctx.arc(start.x, start.y, 8, 0, Math.PI * 2);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Evidenzia posizione attuale
+            const currentPos = getCanvasCoords(path[path.length - 1].col, path[path.length - 1].row);
+            ctx.beginPath();
+            ctx.arc(currentPos.x, currentPos.y, 6, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+        }
+
+        // Avvio iniziale
+        initGame();
+    </script>
+</body>
+</html>
