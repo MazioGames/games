@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gioco del Dado e Griglia</title>
+    <title>Arcade Games HTML</title>
     <style>
         * {
             box-sizing: border-box;
@@ -23,74 +22,27 @@
             padding: 10px;
         }
 
-        h1 {
-            font-size: 1.4rem;
-            margin-bottom: 5px;
-            color: #333;
-        }
-
-        /* Legenda Regole */
-        .legend-table {
-            border-collapse: collapse;
-            background: white;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            border-radius: 8px;
-            overflow: hidden;
-            margin-bottom: 15px;
+        .screen {
+            display: none;
             width: 100%;
-            max-width: 360px;
-        }
-
-        .legend-table th, .legend-table td {
-            border: 1px solid #ddd;
-            padding: 6px 4px;
-            text-align: center;
-            font-size: 0.9rem;
-            width: 16.66%;
-        }
-
-        .legend-table th {
-            background-color: #f0f0f0;
-            font-weight: bold;
-        }
-
-        .arrow {
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: #222;
-        }
-
-        /* Status & controlli */
-        .controls {
-            display: flex;
+            max-width: 380px;
             flex-direction: column;
             align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
-            width: 100%;
-            max-width: 360px;
         }
 
-        .turn-indicator {
-            font-size: 1.1rem;
-            font-weight: bold;
-            padding: 6px 12px;
-            border-radius: 20px;
-            color: white;
-            transition: background-color 0.3s;
-        }
-
-        .p1-turn { background-color: #e91e63; }
-        .p2-turn { background-color: #2196f3; }
-
-        .dice-container {
+        .active-screen {
             display: flex;
-            align-items: center;
-            gap: 15px;
         }
 
-        button {
-            padding: 10px 20px;
+        h1 {
+            font-size: 1.4rem;
+            margin-bottom: 10px;
+            color: #333;
+            text-align: center;
+        }
+
+        .btn {
+            padding: 12px 20px;
             font-size: 1rem;
             font-weight: bold;
             color: white;
@@ -99,28 +51,33 @@
             border-radius: 8px;
             box-shadow: 0 3px 6px rgba(0,0,0,0.2);
             cursor: pointer;
-            active: transform 0.95;
+            width: 100%;
+            margin-bottom: 10px;
         }
 
-        button:disabled {
-            background-color: #ccc;
-            box-shadow: none;
+        .btn-secondary {
+            background-color: #757575;
+            margin-top: 10px;
         }
 
-        .dice-result {
-            font-size: 1.8rem;
+        .btn-blue {
+            background-color: #2196f3;
+        }
+
+        .turn-indicator {
+            font-size: 1rem;
             font-weight: bold;
-            width: 45px;
-            height: 45px;
-            background: white;
-            border: 2px solid #333;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            padding: 6px 12px;
+            border-radius: 20px;
+            color: white;
+            margin-bottom: 10px;
+            text-align: center;
+            width: 100%;
         }
 
-        /* Canvas per la griglia */
+        .p-blue { background-color: #2196f3; }
+        .p-red { background-color: #e91e63; }
+
         canvas {
             background-color: #fff;
             border-radius: 12px;
@@ -128,222 +85,338 @@
             touch-action: none;
         }
 
-        .restart-btn {
-            margin-top: 15px;
-            background-color: #757575;
+        /* Stili Gioco 1 */
+        .legend-table {
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 10px;
+            width: 100%;
+        }
+        .legend-table th, .legend-table td {
+            border: 1px solid #ddd;
+            padding: 4px;
+            text-align: center;
+            font-size: 0.85rem;
+            width: 16.66%;
+        }
+        .arrow { font-size: 1.1rem; font-weight: bold; }
+        .dice-container { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .dice-result {
+            font-size: 1.5rem; font-weight: bold; width: 40px; height: 40px;
+            background: white; border: 2px solid #333; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
         }
     </style>
 </head>
 <body>
 
-    <h1>Corsa sulla Griglia</h1>
-
-    <!-- Tabella Legenda Mosse -->
-    <table class="legend-table">
-        <tr>
-            <th>1</th>
-            <th>2</th>
-            <th>3</th>
-            <th>4</th>
-            <th>5</th>
-            <th>6</th>
-        </tr>
-        <tr>
-            <td class="arrow">&darr;</td>
-            <td class="arrow">&nearr;</td>
-            <td class="arrow">&searr;</td>
-            <td class="arrow">&larr;</td>
-            <td class="arrow">&swarr;</td>
-            <td class="arrow">&darr;</td>
-        </tr>
-    </table>
-
-    <!-- Controlli del Gioco -->
-    <div class="controls">
-        <div id="turnIndicator" class="turn-indicator p1-turn">Turno: Giocatore 1 (Rosa)</div>
-        <div class="dice-container">
-            <button id="rollBtn" onclick="rollDice()">Tira il Dado 🎲</button>
-            <div id="diceVal" class="dice-result">-</div>
-        </div>
+    <!-- MENU PRINCIPALE -->
+    <div id="menuScreen" class="screen active-screen">
+        <h1 style="margin-top: 40px; margin-bottom: 30px;">Scegli un Gioco</h1>
+        <button class="btn" onclick="showScreen('game1Screen'); initGame1();">🎲 Corsa sulla Griglia</button>
+        <button class="btn btn-blue" onclick="showScreen('game2Screen'); initGame2();">🔵🔴 Gioco dei Gettoni</button>
     </div>
 
-    <!-- Canvas di gioco -->
-    <canvas id="gameCanvas" width="350" height="450"></canvas>
+    <!-- GIOCO 1: CORSA DADO -->
+    <div id="game1Screen" class="screen">
+        <h1>Corsa sulla Griglia</h1>
+        <table class="legend-table">
+            <tr><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th></tr>
+            <tr>
+                <td class="arrow">&darr;</td><td class="arrow">&nearr;</td><td class="arrow">&searr;</td>
+                <td class="arrow">&larr;</td><td class="arrow">&swarr;</td><td class="arrow">&darr;</td>
+            </tr>
+        </table>
+        <div id="g1Turn" class="turn-indicator p-red">Turno: Rosa</div>
+        <div class="dice-container">
+            <button id="rollBtn" class="btn" onclick="rollDice()">Tira Dado 🎲</button>
+            <div id="diceVal" class="dice-result">-</div>
+        </div>
+        <canvas id="canvas1" width="340" height="380"></canvas>
+        <button class="btn btn-secondary" onclick="showScreen('menuScreen')">⬅ Menu Principale</button>
+    </div>
 
-    <button class="restart-btn" onclick="initGame()">Ricomincia Partita</button>
+    <!-- GIOCO 2: GETTONI STRATEGICI -->
+    <div id="game2Screen" class="screen">
+        <h1>Blocca l'Avversario</h1>
+        <div id="g2Turn" class="turn-indicator p-blue">Turno: Blu (Seleziona gettone)</div>
+        <canvas id="canvas2" width="340" height="380"></canvas>
+        <button class="btn btn-secondary" onclick="initGame2()">Ricomincia</button>
+        <button class="btn btn-secondary" style="margin-top: 5px;" onclick="showScreen('menuScreen')">⬅ Menu Principale</button>
+    </div>
 
     <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-
-        // Configurazione Griglia (7 colonne, 9 righe di punti)
-        const COLS = 7;
-        const ROWS = 9;
-        const PADDING = 35;
-        const SPACING_X = (canvas.width - PADDING * 2) / (COLS - 1);
-        const SPACING_Y = (canvas.height - PADDING * 2) / (ROWS - 1);
-
-        // Mappatura movimenti del dado (dx, dy)
-        // 1: ↓ (0,1), 2: ↗ (1,-1), 3: ↘ (1,1), 4: ← (-1,0), 5: ↙ (-1,1), 6: ↓ (0,1)
-        const moves = {
-            1: { dx: 0, dy: 1 },
-            2: { dx: 1, dy: -1 },
-            3: { dx: 1, dy: 1 },
-            4: { dx: -1, dy: 0 },
-            5: { dx: -1, dy: 1 },
-            6: { dx: 0, dy: 1 }
-        };
-
-        // Stato di gioco
-        let turn = 1; // 1 = P1 (Rosa), 2 = P2 (Blu)
-        let diceValue = null;
-        let gameOver = false;
-
-        // Posizioni iniziali (colonna, riga)
-        let p1Path = [{ col: 2, row: 1 }]; // Giocatore 1
-        let p2Path = [{ col: 4, row: 1 }]; // Giocatore 2
-
-        function initGame() {
-            turn = 1;
-            diceValue = null;
-            gameOver = false;
-            p1Path = [{ col: 2, row: 1 }];
-            p2Path = [{ col: 4, row: 1 }];
-            
-            document.getElementById('diceVal').innerText = '-';
-            document.getElementById('rollBtn').disabled = false;
-            updateTurnUI();
-            drawBoard();
+        // Gestione Schermate
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
+            document.getElementById(screenId).classList.add('active-screen');
         }
 
-        function updateTurnUI() {
-            const ind = document.getElementById('turnIndicator');
-            if (turn === 1) {
-                ind.innerText = "Turno: Giocatore 1 (Rosa)";
-                ind.className = "turn-indicator p1-turn";
-            } else {
-                ind.innerText = "Turno: Giocatore 2 (Blu)";
-                ind.className = "turn-indicator p2-turn";
-            }
+        /* ==========================================
+           LOGICA GIOCO 1: CORSA SULLA GRIGLIA
+        ========================================== */
+        const canvas1 = document.getElementById('canvas1');
+        const ctx1 = canvas1.getContext('2d');
+        const COLS = 7, ROWS = 9, PADDING1 = 30;
+        const SPACING_X = (canvas1.width - PADDING1 * 2) / (COLS - 1);
+        const SPACING_Y = (canvas1.height - PADDING1 * 2) / (ROWS - 1);
+        const moves1 = {
+            1: {dx:0, dy:1}, 2: {dx:1, dy:-1}, 3: {dx:1, dy:1},
+            4: {dx:-1, dy:0}, 5: {dx:-1, dy:1}, 6: {dx:0, dy:1}
+        };
+        let turn1 = 1, gameOver1 = false, p1Path = [], p2Path = [];
+
+        function initGame1() {
+            turn1 = 1; gameOver1 = false;
+            p1Path = [{col: 2, row: 0}]; p2Path = [{col: 4, row: 0}];
+            document.getElementById('diceVal').innerText = '-';
+            document.getElementById('rollBtn').disabled = false;
+            updateUI1(); drawBoard1();
+        }
+
+        function updateUI1() {
+            const ind = document.getElementById('g1Turn');
+            ind.innerText = turn1 === 1 ? "Turno: Giocatore 1 (Rosa)" : "Turno: Giocatore 2 (Blu)";
+            ind.className = turn1 === 1 ? "turn-indicator p-red" : "turn-indicator p-blue";
         }
 
         function rollDice() {
-            if (gameOver) return;
-
-            // Animazione semplice dado
+            if (gameOver1) return;
             let count = 0;
-            const rollBtn = document.getElementById('rollBtn');
-            rollBtn.disabled = true;
-
+            document.getElementById('rollBtn').disabled = true;
             const interval = setInterval(() => {
-                const randomRoll = Math.floor(Math.random() * 6) + 1;
-                document.getElementById('diceVal').innerText = randomRoll;
-                count++;
-                if (count > 8) {
+                const roll = Math.floor(Math.random() * 6) + 1;
+                document.getElementById('diceVal').innerText = roll;
+                if (++count > 8) {
                     clearInterval(interval);
-                    diceValue = randomRoll;
-                    makeMove(diceValue);
+                    makeMove1(roll);
                 }
             }, 50);
         }
 
-        function makeMove(val) {
-            const move = moves[val];
-            const currentPath = turn === 1 ? p1Path : p2Path;
-            const lastPos = currentPath[currentPath.length - 1];
-
-            let newCol = lastPos.col + move.dx;
-            let newRow = lastPos.row + move.dy;
-
-            // Limita il movimento all'interno dei bordi della griglia
-            newCol = Math.max(0, Math.min(COLS - 1, newCol));
-            newRow = Math.max(0, Math.min(ROWS - 1, newRow));
-
-            // Aggiungi nuova posizione al percorso
-            currentPath.push({ col: newCol, row: newRow });
-
-            drawBoard();
-
-            // Controllo Vittoria (se raggiunge l'ultima riga in basso)
-            if (newRow === ROWS - 1) {
-                gameOver = true;
-                const winnerText = turn === 1 ? "Giocatore 1 (Rosa)" : "Giocatore 2 (Blu)";
-                setTimeout(() => {
-                    alert(`🎉 Ha vinto il ${winnerText}!`);
-                }, 100);
+        function makeMove1(val) {
+            const move = moves1[val];
+            const path = turn1 === 1 ? p1Path : p2Path;
+            const last = path[path.length - 1];
+            let nc = Math.max(0, Math.min(COLS - 1, last.col + move.dx));
+            let nr = Math.max(0, Math.min(ROWS - 1, last.row + move.dy));
+            path.push({col: nc, row: nr});
+            drawBoard1();
+            if (nr === ROWS - 1) {
+                gameOver1 = true;
+                alert(`🎉 Ha vinto il Giocatore ${turn1}!`);
                 return;
             }
-
-            // Cambia Turno
-            turn = turn === 1 ? 2 : 1;
-            updateTurnUI();
+            turn1 = turn1 === 1 ? 2 : 1;
+            updateUI1();
             document.getElementById('rollBtn').disabled = false;
         }
 
-        function getCanvasCoords(col, row) {
-            return {
-                x: PADDING + col * SPACING_X,
-                y: PADDING + row * SPACING_Y
-            };
-        }
-
-        function drawBoard() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // 1. Disegna i punti della griglia
+        function drawBoard1() {
+            ctx1.clearRect(0, 0, canvas1.width, canvas1.height);
             for (let r = 0; r < ROWS; r++) {
                 for (let c = 0; c < COLS; c++) {
-                    const pos = getCanvasCoords(c, r);
-                    ctx.beginPath();
-                    ctx.arc(pos.x, pos.y, 4, 0, Math.PI * 2);
-                    ctx.fillStyle = '#444';
-                    ctx.fill();
+                    ctx1.beginPath();
+                    ctx1.arc(PADDING1 + c * SPACING_X, PADDING1 + r * SPACING_Y, 3, 0, Math.PI * 2);
+                    ctx1.fillStyle = '#888'; ctx1.fill();
                 }
             }
-
-            // 2. Disegna percorso Giocatore 1 (Rosa)
-            drawPath(p1Path, '#e91e63');
-
-            // 3. Disegna percorso Giocatore 2 (Blu)
-            drawPath(p2Path, '#2196f3');
+            drawPath1(p1Path, '#e91e63');
+            drawPath1(p2Path, '#2196f3');
         }
 
-        function drawPath(path, color) {
-            if (path.length === 0) return;
-
-            // Disegna linee
-            ctx.beginPath();
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 4;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-
-            const start = getCanvasCoords(path[0].col, path[0].row);
-            ctx.moveTo(start.x, start.y);
-
+        function drawPath1(path, color) {
+            if (!path.length) return;
+            ctx1.beginPath(); ctx1.strokeStyle = color; ctx1.lineWidth = 3;
+            ctx1.moveTo(PADDING1 + path[0].col * SPACING_X, PADDING1 + path[0].row * SPACING_Y);
             for (let i = 1; i < path.length; i++) {
-                const pt = getCanvasCoords(path[i].col, path[i].row);
-                ctx.lineTo(pt.x, pt.y);
+                ctx1.lineTo(PADDING1 + path[i].col * SPACING_X, PADDING1 + path[i].row * SPACING_Y);
             }
-            ctx.stroke();
-
-            // Evidenzia punto di partenza (cerchietto concentrico)
-            ctx.beginPath();
-            ctx.arc(start.x, start.y, 8, 0, Math.PI * 2);
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 2;
-            ctx.stroke();
-
-            // Evidenzia posizione attuale
-            const currentPos = getCanvasCoords(path[path.length - 1].col, path[path.length - 1].row);
-            ctx.beginPath();
-            ctx.arc(currentPos.x, currentPos.y, 6, 0, Math.PI * 2);
-            ctx.fillStyle = color;
-            ctx.fill();
+            ctx1.stroke();
+            const last = path[path.length - 1];
+            ctx1.beginPath();
+            ctx1.arc(PADDING1 + last.col * SPACING_X, PADDING1 + last.row * SPACING_Y, 6, 0, Math.PI * 2);
+            ctx1.fillStyle = color; ctx1.fill();
         }
 
-        // Avvio iniziale
-        initGame();
+        /* ==========================================
+           LOGICA GIOCO 2: GETTONI STRATEGICI
+        ========================================== */
+        const canvas2 = document.getElementById('canvas2');
+        const ctx2 = canvas2.getContext('2d');
+
+        // Coordinate Nodi del Tavoliere
+        const nodes = [
+            { id: 0, x: 170, y: 30 },  // Alto centro
+            { id: 1, x: 70,  y: 110 }, // Alto sx
+            { id: 2, x: 270, y: 110 }, // Alto dx
+            { id: 3, x: 170, y: 190 }, // Centro
+            { id: 4, x: 70,  y: 270 }, // Basso sx
+            { id: 5, x: 270, y: 270 }, // Basso dx
+            { id: 6, x: 170, y: 350 }  // Basso centro
+        ];
+
+        // Connessioni tra i nodi
+        const edges = [
+            [0,1], [0,2], [1,2],
+            [1,3], [2,3],
+            [1,4], [2,5],
+            [3,4], [3,5],
+            [4,6], [5,6], [4,5]
+        ];
+
+        let boardState = []; // Mappa nodi: null, 'B', 'R'
+        let turn2 = 'B'; // 'B' = Blu, 'R' = Rosso
+        let selectedNode = null;
+        let gameOver2 = false;
+
+        function initGame2() {
+            // Stato iniziale: 3 Blu sopra/centro, 3 Rossi sotto
+            boardState = ['B', 'B', 'B', 'B', 'R', 'R', 'R'];
+            boardState = [
+                'B',       // Node 0
+                null,      // Node 1
+                'B',       // Node 2
+                'B',       // Node 3 (Centro)
+                'R',       // Node 4
+                'R',       // Node 5
+                'R'        // Node 6
+            ];
+            turn2 = 'B';
+            selectedNode = null;
+            gameOver2 = false;
+            updateUI2();
+            drawBoard2();
+        }
+
+        function updateUI2() {
+            const ind = document.getElementById('g2Turn');
+            const name = turn2 === 'B' ? "Blu" : "Rosso";
+            ind.innerText = `Turno: ${name} ${selectedNode !== null ? '(Scegli destinazione)' : '(Seleziona gettone)'}`;
+            ind.className = turn2 === 'B' ? "turn-indicator p-blue" : "turn-indicator p-red";
+        }
+
+        function getNeighbors(nodeId) {
+            let neighbors = [];
+            edges.forEach(([u, v]) => {
+                if (u === nodeId) neighbors.push(v);
+                if (v === nodeId) neighbors.push(u);
+            });
+            return neighbors;
+        }
+
+        canvas2.addEventListener('pointerdown', (e) => {
+            if (gameOver2) return;
+            const rect = canvas2.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            // Trova nodo cliccato
+            const clickedNode = nodes.findIndex(n => {
+                const dist = Math.hypot(n.x - clickX, n.y - clickY);
+                return dist < 25;
+            });
+
+            if (clickedNode === -1) return;
+
+            if (selectedNode === null) {
+                // Seleziona proprio gettone
+                if (boardState[clickedNode] === turn2) {
+                    selectedNode = clickedNode;
+                }
+            } else {
+                // Muovi gettone
+                if (clickedNode === selectedNode) {
+                    selectedNode = null; // Deseleziona
+                } else if (boardState[clickedNode] === null && getNeighbors(selectedNode).includes(clickedNode)) {
+                    // Esegui movimento
+                    boardState[clickedNode] = turn2;
+                    boardState[selectedNode] = null;
+                    selectedNode = null;
+
+                    // Cambia turno
+                    turn2 = turn2 === 'B' ? 'R' : 'B';
+
+                    // Controlla se il nuovo giocatore ha mosse disponibili
+                    if (!hasValidMoves(turn2)) {
+                        gameOver2 = true;
+                        const winner = turn2 === 'B' ? "Rosso" : "Blu";
+                        drawBoard2();
+                        setTimeout(() => alert(`🎉 Nessuna mossa disponibile! Ha vinto il ${winner}!`), 100);
+                        return;
+                    }
+                } else if (boardState[clickedNode] === turn2) {
+                    selectedNode = clickedNode; // Cambia selezione
+                }
+            }
+            updateUI2();
+            drawBoard2();
+        });
+
+        function hasValidMoves(player) {
+            for (let i = 0; i < nodes.length; i++) {
+                if (boardState[i] === player) {
+                    const neighbors = getNeighbors(i);
+                    if (neighbors.some(nbr => boardState[nbr] === null)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function drawBoard2() {
+            ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+
+            // Disegna Linee
+            ctx2.strokeStyle = '#333';
+            ctx2.lineWidth = 4;
+            edges.forEach(([u, v]) => {
+                ctx2.beginPath();
+                ctx2.moveTo(nodes[u].x, nodes[u].y);
+                ctx2.lineTo(nodes[v].x, nodes[v].y);
+                ctx2.stroke();
+            });
+
+            // Disegna Nodi e Gettoni
+            nodes.forEach((n, idx) => {
+                // Nodo base
+                ctx2.beginPath();
+                ctx2.arc(n.x, n.y, 8, 0, Math.PI * 2);
+                ctx2.fillStyle = '#555';
+                ctx2.fill();
+
+                // Gettoni
+                const piece = boardState[idx];
+                if (piece) {
+                    ctx2.beginPath();
+                    ctx2.arc(n.x, n.y, 20, 0, Math.PI * 2);
+                    ctx2.fillStyle = piece === 'B' ? '#2196f3' : '#e91e63';
+                    ctx2.fill();
+                    ctx2.lineWidth = 3;
+                    ctx2.strokeStyle = '#fff';
+                    ctx2.stroke();
+
+                    // Foro centrale del gettone (stile immagine)
+                    ctx2.beginPath();
+                    ctx2.arc(n.x, n.y, 5, 0, Math.PI * 2);
+                    ctx2.fillStyle = '#fff';
+                    ctx2.fill();
+                }
+
+                // Evidenzia selezione
+                if (selectedNode === idx) {
+                    ctx2.beginPath();
+                    ctx2.arc(n.x, n.y, 24, 0, Math.PI * 2);
+                    ctx2.strokeStyle = '#ffeb3b';
+                    ctx2.lineWidth = 4;
+                    ctx2.stroke();
+                }
+            });
+        }
     </script>
 </body>
 </html>
