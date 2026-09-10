@@ -2,440 +2,394 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Giochi di Carta e Penna</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tris con Dado</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #f4f4f9; display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 10px; }
-        
-        .screen { display: none; width: 100%; max-width: 380px; flex-direction: column; align-items: center; }
-        .active-screen { display: flex; }
-
-        h1 { font-size: 1.5rem; margin-bottom: 15px; color: #333; text-align: center; }
-        h2 { font-size: 1.2rem; margin-bottom: 10px; color: #444; }
-
-        .btn {
-            padding: 12px 18px; font-size: 1rem; font-weight: bold; color: white;
-            background-color: #4caf50; border: none; border-radius: 8px;
-            box-shadow: 0 3px 6px rgba(0,0,0,0.15); cursor: pointer; width: 100%; margin-bottom: 10px; text-align: center;
-        }
-        .btn-secondary { background-color: #757575; margin-top: 10px; }
-        .btn-blue { background-color: #2196f3; }
-        .btn-orange { background-color: #ff9800; }
-        .btn-purple { background-color: #9c27b0; }
-
-        .turn-info {
-            font-size: 1rem; font-weight: bold; padding: 6px 12px; border-radius: 20px;
-            color: white; margin-bottom: 12px; text-align: center; width: 100%; background-color: #333;
+        :root {
+            --bg-color: #f4f7f6;
+            --primary: #2c3e50;
+            --player1-color: #e74c3c; /* Rosso per X */
+            --player2-color: #3498db; /* Blu per O */
         }
 
-        canvas { background-color: #fff; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); touch-action: none; }
-
-        /* TRIS */
-        .tris-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 280px; height: 280px; margin-bottom: 15px; }
-        .tris-cell {
-            background: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            display: flex; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: bold; cursor: pointer;
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            user-select: none;
         }
 
-        /* BATTAGLIA NAVALE */
-        .naval-board { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; width: 270px; height: 270px; margin-bottom: 10px; background: #ccc; border: 2px solid #333; }
-        .naval-cell { background: #e3f2fd; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; cursor: pointer; }
-        .naval-cell.ship { background: #90caf9; }
-        .naval-cell.hit { background: #ef5350; color: white; font-weight: bold; }
-        .naval-cell.miss { background: #b0bec5; }
+        h1 {
+            margin: 10px 0;
+            font-size: 24px;
+            color: var(--primary);
+        }
 
-        /* IMPICCATO */
-        .word-display { font-size: 1.8rem; letter-spacing: 8px; font-weight: bold; margin: 15px 0; color: #222; }
-        .keyboard { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; width: 100%; }
-        .key-btn { width: 32px; height: 38px; font-weight: bold; font-size: 0.9rem; border: none; border-radius: 4px; background: #e0e0e0; cursor: pointer; }
-        .key-btn:disabled { background: #9e9e9e; color: #fff; }
+        /* Sezione Dado e Turni */
+        .controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 15px;
+            width: 100%;
+            max-width: 400px;
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .status {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+
+        .dice-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .dice {
+            width: 60px;
+            height: 60px;
+            background: white;
+            border: 3px solid var(--primary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: bold;
+            box-shadow: 0 3px 5px rgba(0,0,0,0.2);
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+
+        /* Contenitore Griglie */
+        .boards-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .board-wrapper {
+            background: white;
+            padding: 10px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .board-title {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: var(--primary);
+        }
+
+        /* Intestazione numeri/dadi sopra le colonne */
+        .column-headers {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            margin-bottom: 5px;
+        }
+
+        .header-cell {
+            text-align: center;
+            background-color: #e2e8f0;
+            padding: 5px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 14px;
+            color: #4a5568;
+        }
+
+        /* Griglia Tris */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            background-color: #f8fafc;
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        /* Evidenzia la colonna valida */
+        .cell.highlight {
+            background-color: #fef08a;
+            border-color: #eab308;
+        }
+
+        .cell.X {
+            color: var(--player1-color);
+        }
+
+        .cell.O {
+            color: var(--player2-color);
+        }
+
+        .reset-btn {
+            margin-top: 20px;
+            background-color: #e74c3c;
+        }
     </style>
 </head>
 <body>
 
-    <!-- MENU PRINCIPALE -->
-    <div id="menuScreen" class="screen active-screen">
-        <h1 style="margin-top: 30px;">Giochi Carta e Penna</h1>
-        <button class="btn btn-orange" onclick="showScreen('trisScreen'); initTris();">❌⭕ Tris (Tic-Tac-Toe)</button>
-        <button class="btn btn-blue" onclick="showScreen('dotsScreen'); initDots();">🔴🔵 Punti e Quadrati</button>
-        <button class="btn btn-purple" onclick="showScreen('navalScreen'); initNaval();">🚢 Battaglia Navale</button>
-        <button class="btn" onclick="showScreen('hangmanScreen'); initHangman();">✏️ L'Impiccato</button>
-    </div>
+    <h1>Tris con Dado 🎲</h1>
 
-    <!-- 1. TRIS -->
-    <div id="trisScreen" class="screen">
-        <h1>Tris</h1>
-        <div id="trisTurn" class="turn-info">Turno: X</div>
-        <div class="tris-grid" id="trisGrid"></div>
-        <button class="btn btn-secondary" onclick="initTris()">Ricomincia</button>
-        <button class="btn btn-secondary" onclick="showScreen('menuScreen')">⬅ Menu Principale</button>
-    </div>
-
-    <!-- 2. PUNTI E QUADRATI -->
-    <div id="dotsScreen" class="screen">
-        <h1>Punti e Quadrati</h1>
-        <div id="dotsTurn" class="turn-info">Giocatore 1: 0 | Giocatore 2: 0</div>
-        <canvas id="dotsCanvas" width="300" height="300"></canvas>
-        <button class="btn btn-secondary" onclick="initDots()">Ricomincia</button>
-        <button class="btn btn-secondary" onclick="showScreen('menuScreen')">⬅ Menu Principale</button>
-    </div>
-
-    <!-- 3. BATTAGLIA NAVALE -->
-    <div id="navalScreen" class="screen">
-        <h1>Battaglia Navale</h1>
-        <div id="navalStatus" class="turn-info">Posiziona le tue navi</div>
-        <div id="navalControls" style="margin-bottom: 10px;">
-            <button id="navalDirBtn" class="btn btn-blue" style="width: auto; padding: 6px 12px;" onclick="toggleNavalDir()">Orizzontale</button>
+    <div class="controls">
+        <div class="status" id="status">Turno del Giocatore 1 (X)</div>
+        <div class="dice-container">
+            <button id="roll-btn" onclick="rollDice()">Tira il Dado</button>
+            <div class="dice" id="dice-result">-</div>
         </div>
-        <div id="navalBoard" class="naval-board"></div>
-        <button class="btn btn-secondary" onclick="initNaval()">Ricomincia</button>
-        <button class="btn btn-secondary" onclick="showScreen('menuScreen')">⬅ Menu Principale</button>
     </div>
 
-    <!-- 4. L'IMPICCATO -->
-    <div id="hangmanScreen" class="screen">
-        <h1>L'Impiccato</h1>
-        <canvas id="hangmanCanvas" width="200" height="180"></canvas>
-        <div id="wordDisplay" class="word-display">_ _ _ _</div>
-        <div id="keyboard" class="keyboard"></div>
-        <button class="btn btn-secondary" onclick="initHangman()" style="margin-top: 15px;">Nuova Parola</button>
-        <button class="btn btn-secondary" onclick="showScreen('menuScreen')">⬅ Menu Principale</button>
+    <div class="boards-container">
+        <!-- Griglia 1 (Colonne 1, 2, 3) -->
+        <div class="board-wrapper">
+            <div class="board-title">Griglia A (Dadi 1, 2, 3)</div>
+            <div class="column-headers">
+                <div class="header-cell">⚀ 1</div>
+                <div class="header-cell">⚁ 2</div>
+                <div class="header-cell">⚂ 3</div>
+            </div>
+            <div class="grid" id="board-1"></div>
+        </div>
+
+        <!-- Griglia 2 (Colonne 4, 5, 6) -->
+        <div class="board-wrapper">
+            <div class="board-title">Griglia B (Dadi 4, 5, 6)</div>
+            <div class="column-headers">
+                <div class="header-cell">⚃ 4</div>
+                <div class="header-cell">⚄ 5</div>
+                <div class="header-cell">⚅ 6</div>
+            </div>
+            <div class="grid" id="board-2"></div>
+        </div>
     </div>
+
+    <button class="reset-btn" onclick="resetGame()">Nuova Partita</button>
 
     <script>
-        function showScreen(screenId) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
-            document.getElementById(screenId).classList.add('active-screen');
+        let currentPlayer = 'X';
+        let currentRoll = null;
+        let gameState = {
+            board1: Array(9).fill(''),
+            board2: Array(9).fill('')
+        };
+        let isGameOver = false;
+
+        const diceSymbols = ['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+
+        // Inizializza le griglie
+        function initGame() {
+            createGrid('board-1', 1);
+            createGrid('board-2', 2);
+            updateStatus();
         }
 
-        /* ==========================================
-           1. TRIS (TIC-TAC-TOE)
-        ========================================== */
-        let trisBoard = [], trisPlayer = 'X', trisGameOver = false;
-        function initTris() {
-            trisBoard = Array(9).fill('');
-            trisPlayer = 'X'; trisGameOver = false;
-            document.getElementById('trisTurn').innerText = "Turno: Giocatore X";
-            const grid = document.getElementById('trisGrid');
-            grid.innerHTML = '';
+        function createGrid(boardId, boardNum) {
+            const boardEl = document.getElementById(boardId);
+            boardEl.innerHTML = '';
             for (let i = 0; i < 9; i++) {
                 const cell = document.createElement('div');
-                cell.className = 'tris-cell';
-                cell.onclick = () => makeTrisMove(i);
-                grid.appendChild(cell);
-            }
-        }
-        function makeTrisMove(i) {
-            if (trisBoard[i] !== '' || trisGameOver) return;
-            trisBoard[i] = trisPlayer;
-            const cells = document.getElementById('trisGrid').children;
-            cells[i].innerText = trisPlayer;
-            cells[i].style.color = trisPlayer === 'X' ? '#e91e63' : '#2196f3';
-            
-            if (checkTrisWin()) {
-                document.getElementById('trisTurn').innerText = `🎉 Ha vinto ${trisPlayer}!`;
-                trisGameOver = true;
-                return;
-            }
-            if (trisBoard.every(c => c !== '')) {
-                document.getElementById('trisTurn').innerText = "Pareggio!";
-                trisGameOver = true;
-                return;
-            }
-            trisPlayer = trisPlayer === 'X' ? 'O' : 'X';
-            document.getElementById('trisTurn').innerText = `Turno: Giocatore ${trisPlayer}`;
-        }
-        function checkTrisWin() {
-            const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-            return wins.some(w => w.every(i => trisBoard[i] === trisPlayer));
-        }
-
-        /* ==========================================
-           2. PUNTI E QUADRATI (DOTS AND BOXES)
-        ========================================== */
-        const dotsCanvas = document.getElementById('dotsCanvas');
-        const dCtx = dotsCanvas.getContext('2d');
-        const GRID_SIZE = 4; // 4x4 punti = 3x3 quadrati
-        const SPACING = 80, OFFSET = 30;
-        let hLines = [], vLines = [], boxes = [], dotsTurn = 1, scores = [0, 0];
-
-        function initDots() {
-            hLines = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE - 1).fill(0));
-            vLines = Array(GRID_SIZE - 1).fill(null).map(() => Array(GRID_SIZE).fill(0));
-            boxes = Array(GRID_SIZE - 1).fill(null).map(() => Array(GRID_SIZE - 1).fill(0));
-            dotsTurn = 1; scores = [0, 0];
-            updateDotsUI(); drawDots();
-        }
-
-        function updateDotsUI() {
-            document.getElementById('dotsTurn').innerText = `P1 (Rosso): ${scores[0]} | P2 (Blu): ${scores[1]}`;
-        }
-
-        function drawDots() {
-            dCtx.clearRect(0, 0, dotsCanvas.width, dotsCanvas.height);
-            
-            // Disegna Quadrati completati
-            for (let r = 0; r < GRID_SIZE - 1; r++) {
-                for (let c = 0; c < GRID_SIZE - 1; c++) {
-                    if (boxes[r][c] !== 0) {
-                        dCtx.fillStyle = boxes[r][c] === 1 ? 'rgba(233, 30, 99, 0.3)' : 'rgba(33, 150, 243, 0.3)';
-                        dCtx.fillRect(OFFSET + c * SPACING, OFFSET + r * SPACING, SPACING, SPACING);
-                    }
-                }
-            }
-            // Disegna Linee Orizzontali
-            for (let r = 0; r < GRID_SIZE; r++) {
-                for (let c = 0; c < GRID_SIZE - 1; c++) {
-                    if (hLines[r][c] !== 0) {
-                        dCtx.strokeStyle = hLines[r][c] === 1 ? '#e91e63' : '#2196f3';
-                        dCtx.lineWidth = 5;
-                        dCtx.beginPath();
-                        dCtx.moveTo(OFFSET + c * SPACING, OFFSET + r * SPACING);
-                        dCtx.lineTo(OFFSET + (c + 1) * SPACING, OFFSET + r * SPACING);
-                        dCtx.stroke();
-                    }
-                }
-            }
-            // Disegna Linee Verticali
-            for (let r = 0; r < GRID_SIZE - 1; r++) {
-                for (let c = 0; c < GRID_SIZE; c++) {
-                    if (vLines[r][c] !== 0) {
-                        dCtx.strokeStyle = vLines[r][c] === 1 ? '#e91e63' : '#2196f3';
-                        dCtx.lineWidth = 5;
-                        dCtx.beginPath();
-                        dCtx.moveTo(OFFSET + c * SPACING, OFFSET + r * SPACING);
-                        dCtx.lineTo(OFFSET + c * SPACING, OFFSET + (r + 1) * SPACING);
-                        dCtx.stroke();
-                    }
-                }
-            }
-            // Disegna Punti
-            for (let r = 0; r < GRID_SIZE; r++) {
-                for (let c = 0; c < GRID_SIZE; c++) {
-                    dCtx.beginPath();
-                    dCtx.arc(OFFSET + c * SPACING, OFFSET + r * SPACING, 6, 0, Math.PI * 2);
-                    dCtx.fillStyle = '#333'; dCtx.fill();
-                }
-            }
-        }
-
-        dotsCanvas.addEventListener('pointerdown', (e) => {
-            const rect = dotsCanvas.getBoundingClientRect();
-            const x = e.clientX - rect.left, y = e.clientY - rect.top;
-            let lineMade = false;
-
-            // Rileva click su linea orizzontale
-            for (let r = 0; r < GRID_SIZE; r++) {
-                for (let c = 0; c < GRID_SIZE - 1; c++) {
-                    const lx = OFFSET + c * SPACING, ly = OFFSET + r * SPACING;
-                    if (x >= lx + 10 && x <= lx + SPACING - 10 && Math.abs(y - ly) < 15 && hLines[r][c] === 0) {
-                        hLines[r][c] = dotsTurn; lineMade = true;
-                    }
-                }
-            }
-            // Rileva click su linea verticale
-            if (!lineMade) {
-                for (let r = 0; r < GRID_SIZE - 1; r++) {
-                    for (let c = 0; c < GRID_SIZE; c++) {
-                        const lx = OFFSET + c * SPACING, ly = OFFSET + r * SPACING;
-                        if (y >= ly + 10 && y <= ly + SPACING - 10 && Math.abs(x - lx) < 15 && vLines[r][c] === 0) {
-                            vLines[r][c] = dotsTurn; lineMade = true;
-                        }
-                    }
-                }
-            }
-
-            if (lineMade) {
-                let boxClosed = checkDotsBoxes();
-                if (!boxClosed) dotsTurn = dotsTurn === 1 ? 2 : 1;
-                updateDotsUI(); drawDots();
-            }
-        });
-
-        function checkDotsBoxes() {
-            let closedAny = false;
-            for (let r = 0; r < GRID_SIZE - 1; r++) {
-                for (let c = 0; c < GRID_SIZE - 1; c++) {
-                    if (boxes[r][c] === 0) {
-                        if (hLines[r][c] && hLines[r+1][c] && vLines[r][c] && vLines[r][c+1]) {
-                            boxes[r][c] = dotsTurn;
-                            scores[dotsTurn - 1]++;
-                            closedAny = true;
-                        }
-                    }
-                }
-            }
-            return closedAny;
-        }
-
-        /* ==========================================
-           3. BATTAGLIA NAVALE (VS PC)
-        ========================================== */
-        const N_SIZE = 6;
-        let playerBoard = [], pcBoard = [], navState = 'place', shipSizes = [4, 3, 2], currentShipIdx = 0;
-        let isHoriz = true, pcHitsLeft = 9;
-
-        function initNaval() {
-            playerBoard = Array(N_SIZE * N_SIZE).fill(0);
-            pcBoard = Array(N_SIZE * N_SIZE).fill(0);
-            navState = 'place'; currentShipIdx = 0; pcHitsLeft = 9;
-            document.getElementById('navalStatus').innerText = "Posiziona nave da 4 caselle";
-            document.getElementById('navalControls').style.display = 'block';
-            renderNavalBoard();
-            placePcShips();
-        }
-
-        function toggleNavalDir() {
-            isHoriz = !isHoriz;
-            document.getElementById('navalDirBtn').innerText = isHoriz ? "Orizzontale" : "Verticale";
-        }
-
-        function renderNavalBoard() {
-            const boardEl = document.getElementById('navalBoard');
-            boardEl.innerHTML = '';
-            for (let i = 0; i < N_SIZE * N_SIZE; i++) {
-                const cell = document.createElement('div');
-                cell.className = 'naval-cell';
-                if (navState === 'place' && playerBoard[i] === 1) cell.classList.add('ship');
-                if (navState === 'play') {
-                    if (pcBoard[i] === 2) { cell.classList.add('hit'); cell.innerText = 'X'; }
-                    if (pcBoard[i] === 3) { cell.classList.add('miss'); cell.innerText = '•'; }
-                }
-                cell.onclick = () => handleNavalClick(i);
+                cell.classList.add('cell');
+                cell.dataset.board = boardNum;
+                cell.dataset.index = i;
+                cell.addEventListener('click', () => handleCellClick(boardNum, i));
                 boardEl.appendChild(cell);
             }
         }
 
-        function handleNavalClick(i) {
-            if (navState === 'place') {
-                const len = shipSizes[currentShipIdx];
-                const r = Math.floor(i / N_SIZE), c = i % N_SIZE;
-                if (isHoriz && c + len > N_SIZE) return;
-                if (!isHoriz && r + len > N_SIZE) return;
+        // Tira il dado
+        function rollDice() {
+            if (isGameOver || currentRoll !== null) return;
 
-                let canPlace = true;
-                for (let k = 0; k < len; k++) {
-                    let idx = isHoriz ? i + k : i + k * N_SIZE;
-                    if (playerBoard[idx] !== 0) canPlace = false;
-                }
-                if (!canPlace) return;
+            const diceBtn = document.getElementById('roll-btn');
+            diceBtn.disabled = true;
 
-                for (let k = 0; k < len; k++) {
-                    let idx = isHoriz ? i + k : i + k * N_SIZE;
-                    playerBoard[idx] = 1;
+            // Animazione semplice del dado
+            let rolls = 0;
+            const interval = setInterval(() => {
+                const random = Math.floor(Math.random() * 6) + 1;
+                document.getElementById('dice-result').textContent = diceSymbols[random];
+                rolls++;
+                if (rolls > 8) {
+                    clearInterval(interval);
+                    currentRoll = Math.floor(Math.random() * 6) + 1;
+                    document.getElementById('dice-result').textContent = diceSymbols[currentRoll] + " (" + currentRoll + ")";
+                    highlightValidColumns();
+                    checkAvailableMoves();
                 }
-                currentShipIdx++;
-                if (currentShipIdx < shipSizes.length) {
-                    document.getElementById('navalStatus').innerText = `Posiziona nave da ${shipSizes[currentShipIdx]} caselle`;
-                } else {
-                    navState = 'play';
-                    document.getElementById('navalStatus').innerText = "Attacca la flotta nemica!";
-                    document.getElementById('navalControls').style.display = 'none';
-                }
-                renderNavalBoard();
-            } else if (navState === 'play') {
-                if (pcBoard[i] > 1) return; // Già colpito
-                if (pcBoard[i] === 1) {
-                    pcBoard[i] = 2; // Colpito
-                    pcHitsLeft--;
-                    if (pcHitsLeft === 0) {
-                        document.getElementById('navalStatus').innerText = "🎉 Hai distrutto tutte le navi nemiche!";
-                        navState = 'end';
-                    }
-                } else {
-                    pcBoard[i] = 3; // Acqua
-                }
-                renderNavalBoard();
-            }
+            }, 60);
         }
 
-        function placePcShips() {
-            shipSizes.forEach(len => {
-                let placed = false;
-                while (!placed) {
-                    let horiz = Math.random() < 0.5;
-                    let r = Math.floor(Math.random() * (horiz ? N_SIZE : N_SIZE - len + 1));
-                    let c = Math.floor(Math.random() * (horiz ? N_SIZE - len + 1 : N_SIZE));
-                    let idx = r * N_SIZE + c;
-                    let ok = true;
-                    for (let k = 0; k < len; k++) {
-                        if (pcBoard[horiz ? idx + k : idx + k * N_SIZE] !== 0) ok = false;
-                    }
-                    if (ok) {
-                        for (let k = 0; k < len; k++) pcBoard[horiz ? idx + k : idx + k * N_SIZE] = 1;
-                        placed = true;
-                    }
+        // Evidenzia le caselle giocabili
+        function highlightValidColumns() {
+            clearHighlights();
+            if (!currentRoll) return;
+
+            // Determina quale griglia e colonna corrisponde al numero
+            // Griglia 1: 1 -> Col 0, 2 -> Col 1, 3 -> Col 2
+            // Griglia 2: 4 -> Col 0, 5 -> Col 1, 6 -> Col 2
+            const targetBoard = currentRoll <= 3 ? 1 : 2;
+            const colIndex = (currentRoll - 1) % 3;
+
+            const cells = document.querySelectorAll(`[data-board="${targetBoard}"]`);
+            cells.forEach((cell, idx) => {
+                const boardArray = targetBoard === 1 ? gameState.board1 : gameState.board2;
+                if (idx % 3 === colIndex && boardArray[idx] === '') {
+                    cell.classList.add('highlight');
                 }
             });
         }
 
-        /* ==========================================
-           4. L'IMPICCATO
-        ========================================== */
-        const words = ["GATTO", "CASA", "MARE", "GIOCO", "MATITA", "FOGLIO", "ALBERO", "PIZZA", "CALCIO", "SCUOLA"];
-        let targetWord = "", guessedLetters = [], mistakes = 0;
-        const hCanvas = document.getElementById('hangmanCanvas');
-        const hCtx = hCanvas.getContext('2d');
-
-        function initHangman() {
-            targetWord = words[Math.floor(Math.random() * words.length)];
-            guessedLetters = []; mistakes = 0;
-            drawHangman(); updateWordDisplay(); createKeyboard();
+        function clearHighlights() {
+            document.querySelectorAll('.cell').forEach(c => c.classList.remove('highlight'));
         }
 
-        function updateWordDisplay() {
-            let display = targetWord.split('').map(l => guessedLetters.includes(l) ? l : '_').join(' ');
-            document.getElementById('wordDisplay').innerText = display;
-            if (!display.includes('_')) {
-                document.getElementById('wordDisplay').innerText = targetWord + " 🎉 Vinto!";
+        // Gestione del click sulla casella
+        function handleCellClick(boardNum, index) {
+            if (isGameOver || currentRoll === null) return;
+
+            // Verifico se la colonna della casella corrisponde al dado uscito
+            const targetBoard = currentRoll <= 3 ? 1 : 2;
+            const colIndex = (currentRoll - 1) % 3;
+
+            if (boardNum === targetBoard && index % 3 === colIndex) {
+                const boardArray = boardNum === 1 ? gameState.board1 : gameState.board2;
+                
+                if (boardArray[index] === '') {
+                    boardArray[index] = currentPlayer;
+                    render();
+
+                    if (checkWin(boardArray, currentPlayer)) {
+                        document.getElementById('status').textContent = `🎉 Il Giocatore ${currentPlayer} ha vinto!`;
+                        isGameOver = true;
+                        clearHighlights();
+                        return;
+                    }
+
+                    // Passa al giocatore successivo
+                    currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                    currentRoll = null;
+                    document.getElementById('dice-result').textContent = '-';
+                    document.getElementById('roll-btn').disabled = false;
+                    clearHighlights();
+                    updateStatus();
+                }
             }
         }
 
-        function createKeyboard() {
-            const kb = document.getElementById('keyboard');
-            kb.innerHTML = '';
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split('').forEach(let => {
-                const btn = document.createElement('button');
-                btn.className = 'key-btn';
-                btn.innerText = let;
-                btn.onclick = () => guess(let, btn);
-                kb.appendChild(btn);
+        // Se non ci sono mosse disponibili per quel dado, salta il turno
+        function checkAvailableMoves() {
+            const targetBoard = currentRoll <= 3 ? 1 : 2;
+            const colIndex = (currentRoll - 1) % 3;
+            const boardArray = targetBoard === 1 ? gameState.board1 : gameState.board2;
+
+            let hasValidMove = false;
+            for (let i = colIndex; i < 9; i += 3) {
+                if (boardArray[i] === '') {
+                    hasValidMove = true;
+                    break;
+                }
+            }
+
+            if (!hasValidMove) {
+                setTimeout(() => {
+                    alert(`Nessuna mossa disponibile nella colonna del numero ${currentRoll}! Turno passato.`);
+                    currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                    currentRoll = null;
+                    document.getElementById('dice-result').textContent = '-';
+                    document.getElementById('roll-btn').disabled = false;
+                    clearHighlights();
+                    updateStatus();
+                }, 500);
+            }
+        }
+
+        function checkWin(board, player) {
+            const winPatterns = [
+                [0,1,2], [3,4,5], [6,7,8], // Orizzontali
+                [0,3,6], [1,4,7], [2,5,8], // Verticali
+                [0,4,8], [2,4,6]          // Diagonali
+            ];
+            return winPatterns.some(pattern => {
+                return pattern.every(index => board[index] === player);
             });
         }
 
-        function guess(let, btn) {
-            btn.disabled = true;
-            guessedLetters.push(let);
-            if (!targetWord.includes(let)) {
-                mistakes++;
-                drawHangman();
-                if (mistakes >= 6) {
-                    document.getElementById('wordDisplay').innerText = targetWord + " ❌ Perso!";
-                    document.querySelectorAll('.key-btn').forEach(b => b.disabled = true);
-                }
-            } else {
-                updateWordDisplay();
+        function updateStatus() {
+            if (!isGameOver) {
+                document.getElementById('status').textContent = `Turno: Giocatore ${currentPlayer === 'X' ? '1 (X)' : '2 (O)'}`;
             }
         }
 
-        function drawHangman() {
-            hCtx.clearRect(0, 0, hCanvas.width, hCanvas.height);
-            hCtx.strokeStyle = '#333'; hCtx.lineWidth = 3;
-            // Struttura base
-            hCtx.beginPath();
-            hCtx.moveTo(20, 160); hCtx.lineTo(100, 160);
-            hCtx.moveTo(40, 160); hCtx.lineTo(40, 20);
-            hCtx.lineTo(120, 20); hCtx.lineTo(120, 40);
-            hCtx.stroke();
-
-            if (mistakes > 0) { hCtx.beginPath(); hCtx.arc(120, 55, 15, 0, Math.PI * 2); hCtx.stroke(); } // Testa
-            if (mistakes > 1) { hCtx.beginPath(); hCtx.moveTo(120, 70); hCtx.lineTo(120, 110); hCtx.stroke(); } // Corpo
-            if (mistakes > 2) { hCtx.beginPath(); hCtx.moveTo(120, 80); hCtx.lineTo(100, 100); hCtx.stroke(); } // Braccio Sx
-            if (mistakes > 3) { hCtx.beginPath(); hCtx.moveTo(120, 80); hCtx.lineTo(140, 100); hCtx.stroke(); } // Braccio Dx
-            if (mistakes > 4) { hCtx.beginPath(); hCtx.moveTo(120, 110); hCtx.lineTo(100, 140); hCtx.stroke(); } // Gamba Sx
-            if (mistakes > 5) { hCtx.beginPath(); hCtx.moveTo(120, 110); hCtx.lineTo(140, 140); hCtx.stroke(); } // Gamba Dx
+        function render() {
+            [1, 2].forEach(bNum => {
+                const boardArray = bNum === 1 ? gameState.board1 : gameState.board2;
+                const cells = document.querySelectorAll(`[data-board="${bNum}"]`);
+                cells.forEach((cell, i) => {
+                    cell.textContent = boardArray[i];
+                    cell.className = 'cell ' + boardArray[i];
+                });
+            });
         }
+
+        function resetGame() {
+            currentPlayer = 'X';
+            currentRoll = null;
+            gameState = { board1: Array(9).fill(''), board2: Array(9).fill('') };
+            isGameOver = false;
+            document.getElementById('dice-result').textContent = '-';
+            document.getElementById('roll-btn').disabled = false;
+            clearHighlights();
+            render();
+            updateStatus();
+        }
+
+        initGame();
     </script>
 </body>
 </html>
