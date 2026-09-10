@@ -2,231 +2,292 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Tris con Dado</title>
     <style>
         :root {
-            --bg-color: #f4f7f6;
-            --primary: #2c3e50;
-            --player1-color: #e74c3c; /* Rosso per X */
-            --player2-color: #3498db; /* Blu per O */
+            --bg-color: #f1f5f9;
+            --primary: #1e293b;
+            --player1-color: #ef4444; /* Rosso X */
+            --player2-color: #3b82f6; /* Blu O */
         }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
+        * {
+            box-sizing: border-box;
             margin: 0;
-            padding: 15px;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100vh;
+            height: 100dvh; /* Per gestire la barra degli indirizzi mobile */
+            overflow: hidden; /* Blocca completamente lo scroll */
+            background-color: var(--bg-color);
+            color: var(--primary);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 10px;
+        }
+
+        /* Intestazione e Modalità */
+        header {
             display: flex;
             flex-direction: column;
             align-items: center;
-            user-select: none;
+            gap: 4px;
+            flex-shrink: 0;
         }
 
         h1 {
-            margin: 10px 0;
-            font-size: 24px;
-            color: var(--primary);
+            font-size: 1.2rem;
+            text-align: center;
         }
 
-        /* Sezione Dado e Turni */
-        .controls {
+        .mode-selector {
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-bottom: 15px;
-            width: 100%;
-            max-width: 400px;
+            gap: 10px;
+        }
+
+        .mode-btn {
+            padding: 4px 10px;
+            font-size: 0.8rem;
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .mode-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* Area Gioco (Pannello Dado e Turno) */
+        .controls {
             background: white;
-            padding: 15px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 8px 12px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
         }
 
         .status {
-            font-size: 18px;
+            font-size: 0.9rem;
             font-weight: bold;
-            margin-bottom: 10px;
-            color: var(--primary);
         }
 
-        .dice-container {
+        .dice-box {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 8px;
         }
 
         .dice {
-            width: 60px;
-            height: 60px;
-            background: white;
-            border: 3px solid var(--primary);
-            border-radius: 10px;
+            width: 38px;
+            height: 38px;
+            background: #fff;
+            border: 2px solid var(--primary);
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 28px;
+            font-size: 1.4rem;
             font-weight: bold;
-            box-shadow: 0 3px 5px rgba(0,0,0,0.2);
         }
 
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
+        .action-btn {
+            padding: 6px 12px;
+            font-size: 0.85rem;
             font-weight: bold;
-            background-color: #27ae60;
+            background-color: #10b981;
             color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
-            transition: background 0.2s;
         }
 
-        button:active {
-            transform: scale(0.98);
-        }
-
-        button:disabled {
-            background-color: #bdc3c7;
+        .action-btn:disabled {
+            background-color: #cbd5e1;
             cursor: not-allowed;
         }
 
         /* Contenitore Griglie */
-        .boards-container {
+        .boards-wrapper {
             display: flex;
             flex-direction: column;
-            gap: 20px;
-            width: 100%;
-            max-width: 400px;
+            gap: 10px;
+            flex-grow: 1;
+            justify-content: center;
+            max-height: calc(100vh - 160px);
         }
 
-        .board-wrapper {
+        .board-container {
             background: white;
-            padding: 10px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 6px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
         }
 
-        .board-title {
-            text-align: center;
-            font-weight: bold;
-            margin-bottom: 8px;
-            color: var(--primary);
-        }
-
-        /* Intestazione numeri/dadi sopra le colonne */
         .column-headers {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 5px;
-            margin-bottom: 5px;
+            gap: 4px;
         }
 
         .header-cell {
             text-align: center;
             background-color: #e2e8f0;
-            padding: 5px;
-            border-radius: 6px;
+            padding: 2px 0;
+            border-radius: 4px;
             font-weight: bold;
-            font-size: 14px;
-            color: #4a5568;
+            font-size: 0.8rem;
+            color: #475569;
         }
 
-        /* Griglia Tris */
         .grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 5px;
+            gap: 4px;
         }
 
         .cell {
-            aspect-ratio: 1;
+            aspect-ratio: 1.2;
             background-color: #f8fafc;
-            border: 2px solid #cbd5e1;
-            border-radius: 8px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 32px;
+            font-size: 1.5rem;
             font-weight: bold;
             cursor: pointer;
-            transition: background 0.2s;
         }
 
-        /* Evidenzia la colonna valida */
         .cell.highlight {
             background-color: #fef08a;
             border-color: #eab308;
         }
 
-        .cell.X {
-            color: var(--player1-color);
-        }
+        .cell.X { color: var(--player1-color); }
+        .cell.O { color: var(--player2-color); }
 
-        .cell.O {
-            color: var(--player2-color);
+        footer {
+            display: flex;
+            justify-content: center;
+            flex-shrink: 0;
+            padding-top: 4px;
         }
 
         .reset-btn {
-            margin-top: 20px;
-            background-color: #e74c3c;
+            background-color: #ef4444;
+            padding: 6px 16px;
+            font-size: 0.85rem;
         }
     </style>
 </head>
 <body>
 
-    <h1>Tris con Dado 🎲</h1>
+    <header>
+        <h1>Tris con Dado 🎲</h1>
+        <div class="mode-selector">
+            <button class="mode-btn active" id="mode-pvp" onclick="setMode('pvp')">2 Giocatori</button>
+            <button class="mode-btn" id="mode-ai" onclick="setMode('ai')">vs IA Bot</button>
+        </div>
+    </header>
 
     <div class="controls">
-        <div class="status" id="status">Turno del Giocatore 1 (X)</div>
-        <div class="dice-container">
-            <button id="roll-btn" onclick="rollDice()">Tira il Dado</button>
+        <div class="status" id="status">Turno: P1 (X)</div>
+        <div class="dice-box">
             <div class="dice" id="dice-result">-</div>
+            <button class="action-btn" id="roll-btn" onclick="rollDice()">Tira</button>
         </div>
     </div>
 
-    <div class="boards-container">
-        <!-- Griglia 1 (Colonne 1, 2, 3) -->
-        <div class="board-wrapper">
-            <div class="board-title">Griglia A (Dadi 1, 2, 3)</div>
-            <div class="column-headers">
-                <div class="header-cell">⚀ 1</div>
-                <div class="header-cell">⚁ 2</div>
-                <div class="header-cell">⚂ 3</div>
-            </div>
+    <div class="boards-wrapper">
+        <!-- Griglia 1 -->
+        <div class="board-container">
+            <div class="column-headers" id="headers-1"></div>
             <div class="grid" id="board-1"></div>
         </div>
 
-        <!-- Griglia 2 (Colonne 4, 5, 6) -->
-        <div class="board-wrapper">
-            <div class="board-title">Griglia B (Dadi 4, 5, 6)</div>
-            <div class="column-headers">
-                <div class="header-cell">⚃ 4</div>
-                <div class="header-cell">⚄ 5</div>
-                <div class="header-cell">⚅ 6</div>
-            </div>
+        <!-- Griglia 2 -->
+        <div class="board-container">
+            <div class="column-headers" id="headers-2"></div>
             <div class="grid" id="board-2"></div>
         </div>
     </div>
 
-    <button class="reset-btn" onclick="resetGame()">Nuova Partita</button>
+    <footer>
+        <button class="action-btn reset-btn" onclick="resetGame()">Nuova Partita</button>
+    </footer>
 
     <script>
-        let currentPlayer = 'X';
+        const diceSymbols = ['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+        let gameMode = 'pvp'; // 'pvp' o 'ai'
+        let currentPlayer = 'X'; // 'X' umano, 'O' secondo giocatore/IA
         let currentRoll = null;
+        let isGameOver = false;
+
+        // Mappa dei numeri assegnati casualmente alle 6 colonne
+        // Es: columnMapping = [4, 1, 6, 2, 5, 3] (0-2 Griglia 1, 3-5 Griglia 2)
+        let columnMapping = [];
+
         let gameState = {
             board1: Array(9).fill(''),
             board2: Array(9).fill('')
         };
-        let isGameOver = false;
 
-        const diceSymbols = ['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+        function setMode(mode) {
+            gameMode = mode;
+            document.getElementById('mode-pvp').classList.toggle('active', mode === 'pvp');
+            document.getElementById('mode-ai').classList.toggle('active', mode === 'ai');
+            resetGame();
+        }
 
-        // Inizializza le griglie
+        // Funzione per mescolare un array (Fisher-Yates)
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
         function initGame() {
+            // Assegna in modo casuale i numeri da 1 a 6 alle colonne
+            columnMapping = shuffle([1, 2, 3, 4, 5, 6]);
+
+            renderHeaders();
             createGrid('board-1', 1);
             createGrid('board-2', 2);
             updateStatus();
+        }
+
+        function renderHeaders() {
+            const h1 = document.getElementById('headers-1');
+            const h2 = document.getElementById('headers-2');
+            h1.innerHTML = '';
+            h2.innerHTML = '';
+
+            for (let i = 0; i < 3; i++) {
+                const num = columnMapping[i];
+                h1.innerHTML += `<div class="header-cell">${diceSymbols[num]} ${num}</div>`;
+            }
+            for (let i = 3; i < 6; i++) {
+                const num = columnMapping[i];
+                h2.innerHTML += `<div class="header-cell">${diceSymbols[num]} ${num}</div>`;
+            }
         }
 
         function createGrid(boardId, boardNum) {
@@ -242,43 +303,44 @@
             }
         }
 
-        // Tira il dado
         function rollDice() {
             if (isGameOver || currentRoll !== null) return;
 
             const diceBtn = document.getElementById('roll-btn');
             diceBtn.disabled = true;
 
-            // Animazione semplice del dado
             let rolls = 0;
             const interval = setInterval(() => {
                 const random = Math.floor(Math.random() * 6) + 1;
                 document.getElementById('dice-result').textContent = diceSymbols[random];
                 rolls++;
-                if (rolls > 8) {
+                if (rolls > 6) {
                     clearInterval(interval);
                     currentRoll = Math.floor(Math.random() * 6) + 1;
-                    document.getElementById('dice-result').textContent = diceSymbols[currentRoll] + " (" + currentRoll + ")";
+                    document.getElementById('dice-result').textContent = diceSymbols[currentRoll];
                     highlightValidColumns();
                     checkAvailableMoves();
                 }
-            }, 60);
+            }, 50);
         }
 
-        // Evidenzia le caselle giocabili
+        // Trova la posizione della colonna dato il numero di dado uscito
+        function getTargetColumn(roll) {
+            const globalColIndex = columnMapping.indexOf(roll);
+            const boardNum = globalColIndex < 3 ? 1 : 2;
+            const colIndex = globalColIndex % 3;
+            return { boardNum, colIndex };
+        }
+
         function highlightValidColumns() {
             clearHighlights();
             if (!currentRoll) return;
 
-            // Determina quale griglia e colonna corrisponde al numero
-            // Griglia 1: 1 -> Col 0, 2 -> Col 1, 3 -> Col 2
-            // Griglia 2: 4 -> Col 0, 5 -> Col 1, 6 -> Col 2
-            const targetBoard = currentRoll <= 3 ? 1 : 2;
-            const colIndex = (currentRoll - 1) % 3;
-
-            const cells = document.querySelectorAll(`[data-board="${targetBoard}"]`);
+            const { boardNum, colIndex } = getTargetColumn(currentRoll);
+            const cells = document.querySelectorAll(`[data-board="${boardNum}"]`);
+            
             cells.forEach((cell, idx) => {
-                const boardArray = targetBoard === 1 ? gameState.board1 : gameState.board2;
+                const boardArray = boardNum === 1 ? gameState.board1 : gameState.board2;
                 if (idx % 3 === colIndex && boardArray[idx] === '') {
                     cell.classList.add('highlight');
                 }
@@ -289,44 +351,50 @@
             document.querySelectorAll('.cell').forEach(c => c.classList.remove('highlight'));
         }
 
-        // Gestione del click sulla casella
         function handleCellClick(boardNum, index) {
             if (isGameOver || currentRoll === null) return;
+            if (gameMode === 'ai' && currentPlayer === 'O') return; // Blocca click se tocca all'IA
 
-            // Verifico se la colonna della casella corrisponde al dado uscito
-            const targetBoard = currentRoll <= 3 ? 1 : 2;
-            const colIndex = (currentRoll - 1) % 3;
+            const { boardNum: targetBoard, colIndex } = getTargetColumn(currentRoll);
 
             if (boardNum === targetBoard && index % 3 === colIndex) {
-                const boardArray = boardNum === 1 ? gameState.board1 : gameState.board2;
-                
-                if (boardArray[index] === '') {
-                    boardArray[index] = currentPlayer;
-                    render();
+                makeMove(boardNum, index);
+            }
+        }
 
-                    if (checkWin(boardArray, currentPlayer)) {
-                        document.getElementById('status').textContent = `🎉 Il Giocatore ${currentPlayer} ha vinto!`;
-                        isGameOver = true;
-                        clearHighlights();
-                        return;
-                    }
+        function makeMove(boardNum, index) {
+            const boardArray = boardNum === 1 ? gameState.board1 : gameState.board2;
+            
+            if (boardArray[index] === '') {
+                boardArray[index] = currentPlayer;
+                render();
 
-                    // Passa al giocatore successivo
-                    currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
-                    currentRoll = null;
-                    document.getElementById('dice-result').textContent = '-';
-                    document.getElementById('roll-btn').disabled = false;
+                if (checkWin(boardArray, currentPlayer)) {
+                    document.getElementById('status').textContent = `🎉 ${currentPlayer === 'X' ? 'P1' : (gameMode === 'ai' ? 'IA' : 'P2')} ha vinto!`;
+                    isGameOver = true;
                     clearHighlights();
-                    updateStatus();
+                    return;
+                }
+
+                // Cambio turno
+                currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                currentRoll = null;
+                document.getElementById('dice-result').textContent = '-';
+                clearHighlights();
+                updateStatus();
+
+                // Se la modalità è IA e tocca a O
+                if (gameMode === 'ai' && currentPlayer === 'O' && !isGameOver) {
+                    setTimeout(aiTurn, 600);
+                } else {
+                    document.getElementById('roll-btn').disabled = false;
                 }
             }
         }
 
-        // Se non ci sono mosse disponibili per quel dado, salta il turno
         function checkAvailableMoves() {
-            const targetBoard = currentRoll <= 3 ? 1 : 2;
-            const colIndex = (currentRoll - 1) % 3;
-            const boardArray = targetBoard === 1 ? gameState.board1 : gameState.board2;
+            const { boardNum, colIndex } = getTargetColumn(currentRoll);
+            const boardArray = boardNum === 1 ? gameState.board1 : gameState.board2;
 
             let hasValidMove = false;
             for (let i = colIndex; i < 9; i += 3) {
@@ -338,15 +406,68 @@
 
             if (!hasValidMove) {
                 setTimeout(() => {
-                    alert(`Nessuna mossa disponibile nella colonna del numero ${currentRoll}! Turno passato.`);
+                    alert(`Nessuna mossa per il numero ${currentRoll}! Turno saltato.`);
                     currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
                     currentRoll = null;
                     document.getElementById('dice-result').textContent = '-';
-                    document.getElementById('roll-btn').disabled = false;
                     clearHighlights();
                     updateStatus();
-                }, 500);
+
+                    if (gameMode === 'ai' && currentPlayer === 'O' && !isGameOver) {
+                        setTimeout(aiTurn, 600);
+                    } else {
+                        document.getElementById('roll-btn').disabled = false;
+                    }
+                }, 400);
             }
+        }
+
+        // Logica dell'Intelligenza Artificiale
+        function aiTurn() {
+            document.getElementById('roll-btn').disabled = true;
+
+            // L'IA tira il dado
+            rollDiceCustom().then(roll => {
+                currentRoll = roll;
+                document.getElementById('dice-result').textContent = diceSymbols[currentRoll];
+                highlightValidColumns();
+
+                const { boardNum, colIndex } = getTargetColumn(currentRoll);
+                const boardArray = boardNum === 1 ? gameState.board1 : gameState.board2;
+
+                // Trova gli indici delle celle libere nella colonna corretta
+                let validIndices = [];
+                for (let i = colIndex; i < 9; i += 3) {
+                    if (boardArray[i] === '') validIndices.push(i);
+                }
+
+                if (validIndices.length > 0) {
+                    // Scegli una mossa (priorità: vincere o bloccare, altrimenti casuale)
+                    let bestMove = validIndices[Math.floor(Math.random() * validIndices.length)];
+                    
+                    setTimeout(() => {
+                        makeMove(boardNum, bestMove);
+                    }, 800);
+                } else {
+                    setTimeout(checkAvailableMoves, 400);
+                }
+            });
+        }
+
+        function rollDiceCustom() {
+            return new Promise(resolve => {
+                let rolls = 0;
+                const interval = setInterval(() => {
+                    const random = Math.floor(Math.random() * 6) + 1;
+                    document.getElementById('dice-result').textContent = diceSymbols[random];
+                    rolls++;
+                    if (rolls > 6) {
+                        clearInterval(interval);
+                        const finalRoll = Math.floor(Math.random() * 6) + 1;
+                        resolve(finalRoll);
+                    }
+                }, 50);
+            });
         }
 
         function checkWin(board, player) {
@@ -355,14 +476,13 @@
                 [0,3,6], [1,4,7], [2,5,8], // Verticali
                 [0,4,8], [2,4,6]          // Diagonali
             ];
-            return winPatterns.some(pattern => {
-                return pattern.every(index => board[index] === player);
-            });
+            return winPatterns.some(pattern => pattern.every(index => board[index] === player));
         }
 
         function updateStatus() {
             if (!isGameOver) {
-                document.getElementById('status').textContent = `Turno: Giocatore ${currentPlayer === 'X' ? '1 (X)' : '2 (O)'}`;
+                const name = currentPlayer === 'X' ? 'P1 (X)' : (gameMode === 'ai' ? 'IA (O)' : 'P2 (O)');
+                document.getElementById('status').textContent = `Turno: ${name}`;
             }
         }
 
@@ -385,8 +505,8 @@
             document.getElementById('dice-result').textContent = '-';
             document.getElementById('roll-btn').disabled = false;
             clearHighlights();
+            initGame();
             render();
-            updateStatus();
         }
 
         initGame();
