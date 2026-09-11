@@ -483,14 +483,31 @@
         }
 
         // ==========================================
-        // MOTORE DADO 3D FISICO
+        // MOTORE DADO 3D FISICO CON ALLINEAMENTO FRONTALE
         // ==========================================
         let scene, camera, renderer, world;
         let diceMesh, diceBody;
         let isDiceRolling = false;
+        let isAnimatingToFront = false;
+        let animProgress = 0;
+        let startQuat = new THREE.Quaternion();
+        let targetQuat = new THREE.Quaternion();
+        let startPos = new THREE.Vector3();
+        let targetPos = new THREE.Vector3(0, 0.9, 1.2); // Posizione centrale e ravvicinata per ottima visibilità
+
         let is3dInited = false;
         let touchStartPos = { x: 0, y: 0, time: 0 };
         let canThrow = true;
+
+        // Mappa delle facce e relative rotazioni per rivolgerle frontalmente alla telecamera
+        const faceRotations = {
+            1: new THREE.Euler(0, -Math.PI / 2, 0),
+            2: new THREE.Euler(0, Math.PI / 2, 0),
+            3: new THREE.Euler(Math.PI / 2, 0, 0),
+            4: new THREE.Euler(-Math.PI / 2, 0, 0),
+            5: new THREE.Euler(0, 0, 0),
+            6: new THREE.Euler(0, Math.PI, 0)
+        };
 
         function createDiceTexture(number) {
             const canvas = document.createElement('canvas');
@@ -543,10 +560,10 @@
             renderer.shadowMap.enabled = true;
             container.appendChild(renderer.domElement);
 
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
             scene.add(ambientLight);
 
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
             dirLight.position.set(3, 10, 5);
             dirLight.castShadow = true;
             scene.add(dirLight);
@@ -591,8 +608,11 @@
             const diceShape = new CANNON.Box(new CANNON.Vec3(0.9, 0.9, 0.9));
             diceBody = new CANNON.Body({ mass: 1 });
             diceBody.addShape(diceShape);
-            diceBody.position.set(0, 1, 0);
+            diceBody.position.set(0, 0.9, 1.2);
             world.addBody(diceBody);
+
+            // Posizione iniziale di default (Faccia 1 visibile dritta)
+            alignFaceToCamera(1, false);
 
             // EVENTI TOUCH / MOUSE PER IL LANCIO
             container.addEventListener('pointerdown', handlePointerDown);
@@ -602,7 +622,7 @@
         }
 
         function handlePointerDown(e) {
-            if (!canThrow || isDiceRolling || isTrisOver) return;
+            if (!canThrow || isDiceRolling || isAnimatingToFront || isTrisOver) return;
             if (selectedMode === 'ai' && trisPlayer === 'O') return;
 
             touchStartPos.x = e.clientX;
@@ -611,18 +631,16 @@
         }
 
         function handlePointerUp(e) {
-            if (!canThrow || isDiceRolling || isTrisOver) return;
+            if (!canThrow || isDiceRolling || isAnimatingToFront || isTrisOver) return;
             if (selectedMode === 'ai' && trisPlayer === 'O') return;
 
             const dx = e.clientX - touchStartPos.x;
             const dy = e.clientY - touchStartPos.y;
             const dt = Math.max((Date.now() - touchStartPos.time) / 1000, 0.05);
 
-            // Calcola velocità del trascinamento
             let vx = (dx / dt) * 0.015;
             let vz = (dy / dt) * 0.015;
 
-            // Se è un semplice tocco o movimento impercettibile, dai una spinta standard
             if (Math.abs(dx) < 5 && Math.abs(dy) < 5) {
                 vx = (Math.random() - 0.5) * 4;
                 vz = -8;
@@ -633,13 +651,12 @@
 
         function throw3DDice(vx, vy, vz) {
             isDiceRolling = true;
+            isAnimatingToFront = false;
             canThrow = false;
             document.getElementById('dice-instruction').textContent = "🎲 Il dado sta rotolando...";
 
-            // Resetta al centro ed eleva leggermente
             diceBody.position.set(0, 2.2, 0);
             
-            // Forza fisica
             diceBody.velocity.set(
                 Math.min(Math.max(vx, -8), 8),
                 Math.min(Math.max(vy, 10), 16),
@@ -661,21 +678,19 @@
                 if (speed < 0.25 && diceBody.position.y < 1.3) {
                     clearInterval(checkInterval);
                     
-                    // Frena del tutto il corpo fisico
+                    // Disattiva fisica temporaneamente
                     diceBody.velocity.set(0, 0, 0);
                     diceBody.angularVelocity.set(0, 0, 0);
 
-                    // Calcola il numero uscito
+                    // Determina il numero uscito
                     const rolledValue = getDiceValue();
-                    
-                    // Assesta perfettamente il dado dritto a terra (SNAP 90 Gradi)
-                    snapDiceToNearestAxis();
 
                     isDiceRolling = false;
                     document.getElementById('dice-status').textContent = `Uscito: ${rolledValue}`;
                     currentRoll = rolledValue;
-                    highlightValidColumns();
-                    checkTrisAvailableMoves();
+
+                    // Orientamento perfetto e graduale verso l'osservatore
+                    alignFaceToCamera(rolledValue, true);
                 }
             }, 100);
         }
@@ -706,32 +721,60 @@
             return result;
         }
 
-        // Allinea perfettamente la rotazione del dado agli assi ortogonali
-        function snapDiceToNearestAxis() {
-            const euler = new THREE.Euler().setFromQuaternion(diceMesh.quaternion, 'YXZ');
-            const snap = (angle) => Math.round(angle / (Math.PI / 2)) * (Math.PI / 2);
-
-            const targetX = snap(euler.x);
-            const targetY = snap(euler.y);
-            const targetZ = snap(euler.z);
-
-            const targetQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(targetX, targetY, targetZ, 'YXZ'));
+        // Calcola e anima la rotazione del dado affinché la faccia uscita guardi la telecamera
+        function alignFaceToCamera(faceNumber, animate = true) {
+            const euler = faceRotations[faceNumber];
             
-            // Applica la rotazione perfetta e la posizione piatta
-            diceBody.quaternion.copy(targetQuat);
-            diceMesh.quaternion.copy(targetQuat);
-            diceBody.position.y = 0.9;
+            // Inclinazione della telecamera per orientare la faccia perfettamente perpendicolare allo schermo
+            const cameraTilt = new THREE.Euler(Math.atan2(camera.position.y, camera.position.z), 0, 0);
+
+            targetQuat.setFromEuler(euler);
+            targetQuat.premultiply(new THREE.Quaternion().setFromEuler(cameraTilt));
+
+            startQuat.copy(diceMesh.quaternion);
+            startPos.copy(diceMesh.position);
+
+            if (!animate) {
+                diceMesh.quaternion.copy(targetQuat);
+                diceBody.quaternion.copy(targetQuat);
+                diceMesh.position.copy(targetPos);
+                diceBody.position.copy(targetPos);
+                return;
+            }
+
+            animProgress = 0;
+            isAnimatingToFront = true;
         }
 
         function animate3D() {
             requestAnimationFrame(animate3D);
-            if (world) {
+
+            if (world && isDiceRolling) {
                 world.step(1 / 60);
-                if (isDiceRolling) {
-                    diceMesh.position.copy(diceBody.position);
-                    diceMesh.quaternion.copy(diceBody.quaternion);
-                }
+                diceMesh.position.copy(diceBody.position);
+                diceMesh.quaternion.copy(diceBody.quaternion);
             }
+
+            // Animazione fluida verso la telecamera al termine del lancio
+            if (isAnimatingToFront) {
+                animProgress += 0.06;
+                if (animProgress >= 1) {
+                    animProgress = 1;
+                    isAnimatingToFront = false;
+
+                    // Allinea corpo fisico
+                    diceBody.quaternion.copy(targetQuat);
+                    diceBody.position.copy(targetPos);
+
+                    highlightValidColumns();
+                    checkTrisAvailableMoves();
+                }
+
+                // Interpolazione posizione e rotazione (Slerp)
+                diceMesh.quaternion.slerpQuaternions(startQuat, targetQuat, animProgress);
+                diceMesh.position.lerpVectors(startPos, targetPos, animProgress);
+            }
+
             if (renderer && scene && camera) {
                 renderer.render(scene, camera);
             }
@@ -796,7 +839,7 @@
         }
 
         function handleTrisClick(boardNum, index) {
-            if (isTrisOver || currentRoll === null) return;
+            if (isTrisOver || currentRoll === null || isAnimatingToFront) return;
             if (selectedMode === 'ai' && trisPlayer === 'O') return;
             const { boardNum: targetBoard, colIndex } = getTargetColumn(currentRoll);
             if (boardNum === targetBoard && index % 3 === colIndex) makeTrisMove(boardNum, index);
@@ -856,7 +899,7 @@
             throw3DDice((Math.random() - 0.5) * 4, 14, -6);
 
             const checkAiDone = setInterval(() => {
-                if (!isDiceRolling && currentRoll !== null) {
+                if (!isDiceRolling && !isAnimatingToFront && currentRoll !== null) {
                     clearInterval(checkAiDone);
                     const { boardNum, colIndex } = getTargetColumn(currentRoll);
                     const arr = boardNum === 1 ? trisState.board1 : trisState.board2;
