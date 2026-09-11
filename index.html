@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MazioGames Salotto</title>
-    <!-- Librerie per 3D e Fisica -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
     <style>
         :root {
             --bg-color: #f1f5f9;
@@ -69,7 +67,6 @@
         }
 
         .menu-label { font-size: 0.8rem; font-weight: bold; color: #64748b; text-transform: uppercase; }
-
         .option-group { display: flex; gap: 6px; flex-wrap: wrap; }
 
         .select-btn {
@@ -143,8 +140,8 @@
         .status { font-size: 0.85rem; font-weight: bold; }
 
         .action-btn {
-            padding: 4px 10px;
-            font-size: 0.8rem;
+            padding: 6px 12px;
+            font-size: 0.85rem;
             font-weight: bold;
             background-color: #10b981;
             color: white;
@@ -153,34 +150,43 @@
             cursor: pointer;
         }
 
+        .action-btn:disabled { background-color: #cbd5e1; cursor: not-allowed; }
         .reset-btn { background-color: #ef4444; padding: 4px 12px; font-size: 0.75rem; }
 
         footer { display: flex; justify-content: center; flex-shrink: 0; padding-top: 2px; }
 
         /* AREA CANVAS DADO 3D */
+        #dice-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
         #dice-container {
             width: 100%;
-            height: 150px;
+            height: 130px;
             background: #cbd5e1;
             border-radius: 10px;
             position: relative;
             overflow: hidden;
             box-shadow: inset 0 2px 6px rgba(0,0,0,0.15);
-            touch-action: none;
-            cursor: grab;
         }
 
-        .dice-instruction {
-            position: absolute;
-            top: 6px;
+        .roll-btn {
             width: 100%;
-            text-align: center;
-            font-size: 0.75rem;
+            padding: 8px;
+            font-size: 0.95rem;
             font-weight: bold;
-            color: #334155;
-            pointer-events: none;
-            z-index: 10;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
+
+        .roll-btn:disabled { background-color: #94a3b8; cursor: not-allowed; }
 
         .boards-wrapper {
             display: grid;
@@ -376,8 +382,9 @@
             <div class="status" id="dice-status">Uscito: -</div>
         </div>
 
-        <div id="dice-container">
-            <div class="dice-instruction" id="dice-instruction">👆 Trascina o fai uno swipe sul dado per lanciarlo!</div>
+        <div id="dice-area">
+            <div id="dice-container"></div>
+            <button id="roll-button" class="roll-btn" onclick="userRollDice()">🎲 Lancia Dado</button>
         </div>
 
         <div class="boards-wrapper">
@@ -480,23 +487,14 @@
         }
 
         // ==========================================
-        // MOTORE DADO 3D FISICO
+        // MOTORE DADO 3D (ANIMAZIONE TASTO)
         // ==========================================
-        let scene, camera, renderer, world;
-        let diceMesh, diceBody;
-        let isDiceRolling = false;
-        let isAnimatingToFront = false;
-        let animProgress = 0;
-        let startQuat = new THREE.Quaternion();
-        let targetQuat = new THREE.Quaternion();
-        let startPos = new THREE.Vector3();
-        let targetPos = new THREE.Vector3(0, 0.9, 1.2); 
-
+        let scene, camera, renderer;
+        let diceMesh;
         let is3dInited = false;
-        let touchStartPos = { x: 0, y: 0, time: 0 };
-        let canThrow = true;
+        let isRolling = false;
 
-        // Mappa orientamento esatto per portare la faccia scelta IN ALTO (Top Face +Y)
+        // Mappa orientamento per posizionare ogni faccia IN ALTO (Top Face +Y)
         const faceRotationsToTop = {
             1: new THREE.Euler(0, 0, -Math.PI / 2),
             2: new THREE.Euler(0, 0, Math.PI / 2),
@@ -549,12 +547,11 @@
             scene.background = new THREE.Color(0xcbd5e1);
 
             camera = new THREE.PerspectiveCamera(40, container.clientWidth / container.clientHeight, 0.1, 100);
-            camera.position.set(0, 8.5, 9);
+            camera.position.set(0, 5, 6);
             camera.lookAt(0, 0, 0);
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(container.clientWidth, container.clientHeight);
-            renderer.shadowMap.enabled = true;
             container.appendChild(renderer.domElement);
 
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
@@ -562,29 +559,7 @@
 
             const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
             dirLight.position.set(3, 10, 5);
-            dirLight.castShadow = true;
             scene.add(dirLight);
-
-            world = new CANNON.World();
-            world.gravity.set(0, -30, 0);
-
-            const floorShape = new CANNON.Plane();
-            const floorBody = new CANNON.Body({ mass: 0 });
-            floorBody.addShape(floorShape);
-            floorBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
-            world.addBody(floorBody);
-
-            const addWall = (x, z, rotY) => {
-                const wall = new CANNON.Body({ mass: 0 });
-                wall.addShape(new CANNON.Plane());
-                wall.position.set(x, 0, z);
-                wall.quaternion.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), rotY);
-                world.addBody(wall);
-            };
-            addWall(0, -3.5, 0);
-            addWall(0, 3.5, Math.PI);
-            addWall(-4.5, 0, Math.PI / 2);
-            addWall(4.5, 0, -Math.PI / 2);
 
             const materials = [
                 new THREE.MeshStandardMaterial({ map: createDiceTexture(1) }),
@@ -595,170 +570,73 @@
                 new THREE.MeshStandardMaterial({ map: createDiceTexture(6) })
             ];
 
-            const diceGeo = new THREE.BoxGeometry(1.8, 1.8, 1.8);
+            const diceGeo = new THREE.BoxGeometry(2, 2, 2);
             diceMesh = new THREE.Mesh(diceGeo, materials);
-            diceMesh.castShadow = true;
             scene.add(diceMesh);
 
-            const diceShape = new CANNON.Box(new CANNON.Vec3(0.9, 0.9, 0.9));
-            diceBody = new CANNON.Body({ mass: 1 });
-            diceBody.addShape(diceShape);
-            diceBody.position.set(0, 0.9, 1.2);
-            world.addBody(diceBody);
-
-            alignFaceToTop(1, false);
-
-            container.addEventListener('pointerdown', handlePointerDown);
-            container.addEventListener('pointerup', handlePointerUp);
-
+            setDiceToFace(1);
             animate3D();
         }
 
-        function handlePointerDown(e) {
-            if (!canThrow || isDiceRolling || isAnimatingToFront || isTrisOver) return;
-            if (selectedMode === 'ai' && trisPlayer === 'O') return;
-
-            touchStartPos.x = e.clientX;
-            touchStartPos.y = e.clientY;
-            touchStartPos.time = Date.now();
-        }
-
-        function handlePointerUp(e) {
-            if (!canThrow || isDiceRolling || isAnimatingToFront || isTrisOver) return;
-            if (selectedMode === 'ai' && trisPlayer === 'O') return;
-
-            const dx = e.clientX - touchStartPos.x;
-            const dy = e.clientY - touchStartPos.y;
-            const dt = Math.max((Date.now() - touchStartPos.time) / 1000, 0.05);
-
-            let vx = (dx / dt) * 0.015;
-            let vz = (dy / dt) * 0.015;
-
-            if (Math.abs(dx) < 5 && Math.abs(dy) < 5) {
-                vx = (Math.random() - 0.5) * 4;
-                vz = -8;
-            }
-
-            throw3DDice(vx, 14, vz);
-        }
-
-        function throw3DDice(vx, vy, vz) {
-            isDiceRolling = true;
-            isAnimatingToFront = false;
-            canThrow = false;
-            document.getElementById('dice-instruction').textContent = "🎲 Il dado sta rotolando...";
-
-            diceBody.position.set(0, 2.2, 0);
-
-            diceBody.velocity.set(
-                Math.min(Math.max(vx, -8), 8),
-                Math.min(Math.max(vy, 10), 16),
-                Math.min(Math.max(vz, -10), 10)
-            );
-
-            diceBody.angularVelocity.set(
-                (Math.random() - 0.5) * 30 + 10,
-                (Math.random() - 0.5) * 30,
-                (Math.random() - 0.5) * 30 + 10
-            );
-
-            checkDiceStopped();
-        }
-
-        function checkDiceStopped() {
-            const checkInterval = setInterval(() => {
-                const speed = diceBody.velocity.length() + diceBody.angularVelocity.length();
-                if (speed < 0.25 && diceBody.position.y < 1.3) {
-                    clearInterval(checkInterval);
-
-                    diceBody.velocity.set(0, 0, 0);
-                    diceBody.angularVelocity.set(0, 0, 0);
-
-                    const rolledValue = getTopDiceValue();
-
-                    isDiceRolling = false;
-                    document.getElementById('dice-status').textContent = `Uscito: ${rolledValue}`;
-                    currentRoll = rolledValue;
-
-                    alignFaceToTop(rolledValue, true);
-                }
-            }, 100);
-        }
-
-        function getTopDiceValue() {
-            const normals = [
-                { val: 1, vec: new THREE.Vector3(1, 0, 0) },
-                { val: 2, vec: new THREE.Vector3(-1, 0, 0) },
-                { val: 3, vec: new THREE.Vector3(0, 1, 0) },
-                { val: 4, vec: new THREE.Vector3(0, -1, 0) },
-                { val: 5, vec: new THREE.Vector3(0, 0, 1) },
-                { val: 6, vec: new THREE.Vector3(0, 0, -1) }
-            ];
-
-            let maxDot = -Infinity;
-            let result = 1;
-            const upVec = new THREE.Vector3(0, 1, 0);
-
-            normals.forEach(n => {
-                const worldVec = n.vec.clone().applyQuaternion(diceMesh.quaternion);
-                const dot = worldVec.dot(upVec);
-                if (dot > maxDot) {
-                    maxDot = dot;
-                    result = n.val;
-                }
-            });
-
-            return result;
-        }
-
-        function alignFaceToTop(faceNumber, animate = true) {
-            const baseEuler = faceRotationsToTop[faceNumber];
-            targetQuat.setFromEuler(baseEuler);
-
-            startQuat.copy(diceMesh.quaternion);
-            startPos.copy(diceMesh.position);
-
-            if (!animate) {
-                diceMesh.quaternion.copy(targetQuat);
-                diceBody.quaternion.copy(targetQuat);
-                diceMesh.position.copy(targetPos);
-                diceBody.position.copy(targetPos);
-                return;
-            }
-
-            animProgress = 0;
-            isAnimatingToFront = true;
+        function setDiceToFace(number) {
+            const euler = faceRotationsToTop[number];
+            diceMesh.quaternion.setFromEuler(euler);
         }
 
         function animate3D() {
             requestAnimationFrame(animate3D);
-
-            if (world && isDiceRolling) {
-                world.step(1 / 60);
-                diceMesh.position.copy(diceBody.position);
-                diceMesh.quaternion.copy(diceBody.quaternion);
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
             }
+        }
 
-            if (isAnimatingToFront) {
-                animProgress += 0.06;
-                if (animProgress >= 1) {
-                    animProgress = 1;
-                    isAnimatingToFront = false;
+        function userRollDice() {
+            if (isRolling || isTrisOver || currentRoll !== null) return;
+            if (selectedMode === 'ai' && trisPlayer === 'O') return;
+            executeRoll();
+        }
 
-                    diceBody.quaternion.copy(targetQuat);
-                    diceBody.position.copy(targetPos);
+        function executeRoll() {
+            isRolling = true;
+            document.getElementById('roll-button').disabled = true;
+
+            const rolledValue = Math.floor(Math.random() * 6) + 1;
+            const targetQuat = new THREE.Quaternion().setFromEuler(faceRotationsToTop[rolledValue]);
+
+            let startTime = null;
+            const duration = 1000; // 1 secondo di rotazione
+
+            // Rotazioni casuali durante l'animazione
+            const randomX = (Math.random() * 4 + 4) * Math.PI;
+            const randomY = (Math.random() * 4 + 4) * Math.PI;
+            const startQuat = diceMesh.quaternion.clone();
+
+            function animateRoll(timestamp) {
+                if (!startTime) startTime = timestamp;
+                const elapsed = timestamp - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+
+                // Easing out per rallentare alla fine
+                const easeOut = 1 - Math.pow(1 - progress, 3);
+
+                if (progress < 1) {
+                    const tempEuler = new THREE.Euler(randomX * (1 - progress), randomY * (1 - progress), 0);
+                    const spinQuat = new THREE.Quaternion().setFromEuler(tempEuler);
+                    
+                    diceMesh.quaternion.slerpQuaternions(startQuat, targetQuat, easeOut).multiply(spinQuat);
+                    requestAnimationFrame(animateRoll);
+                } else {
+                    diceMesh.quaternion.copy(targetQuat);
+                    isRolling = false;
+                    currentRoll = rolledValue;
+                    document.getElementById('dice-status').textContent = `Uscito: ${currentRoll}`;
 
                     highlightValidColumns();
                     checkTrisAvailableMoves();
                 }
-
-                diceMesh.quaternion.slerpQuaternions(startQuat, targetQuat, animProgress);
-                diceMesh.position.lerpVectors(startPos, targetPos, animProgress);
             }
 
-            if (renderer && scene && camera) {
-                renderer.render(scene, camera);
-            }
+            requestAnimationFrame(animateRoll);
         }
 
         // ==========================================
@@ -820,7 +698,7 @@
         }
 
         function handleTrisClick(boardNum, index) {
-            if (isTrisOver || currentRoll === null || isAnimatingToFront) return;
+            if (isTrisOver || currentRoll === null || isRolling) return;
             if (selectedMode === 'ai' && trisPlayer === 'O') return;
             const { boardNum: targetBoard, colIndex } = getTargetColumn(currentRoll);
             if (boardNum === targetBoard && index % 3 === colIndex) makeTrisMove(boardNum, index);
@@ -835,8 +713,8 @@
                 if (checkWin(arr, trisPlayer)) {
                     const winnerName = trisPlayer === 'X' ? nameP1 : nameP2;
                     document.getElementById('tris-status').textContent = `🎉 ${winnerName} Vince!`;
-                    document.getElementById('dice-instruction').textContent = "Partita Conclusa!";
                     isTrisOver = true;
+                    document.getElementById('roll-button').disabled = true;
                     clearHighlights();
                     return;
                 }
@@ -849,8 +727,6 @@
 
                 if (selectedMode === 'ai' && trisPlayer === 'O' && !isTrisOver) {
                     setTimeout(trisAiTurn, 600);
-                } else {
-                    canThrow = true;
                 }
             }
         }
@@ -870,17 +746,15 @@
                     clearHighlights();
                     updateTrisStatus();
                     if (selectedMode === 'ai' && trisPlayer === 'O' && !isTrisOver) setTimeout(trisAiTurn, 600);
-                    else canThrow = true;
                 }, 300);
             }
         }
 
         function trisAiTurn() {
-            document.getElementById('dice-instruction').textContent = "🤖 L'IA sta lanciando il dado...";
-            throw3DDice((Math.random() - 0.5) * 4, 14, -6);
+            executeRoll();
 
             const checkAiDone = setInterval(() => {
-                if (!isDiceRolling && !isAnimatingToFront && currentRoll !== null) {
+                if (!isRolling && currentRoll !== null) {
                     clearInterval(checkAiDone);
                     const { boardNum, colIndex } = getTargetColumn(currentRoll);
                     const arr = boardNum === 1 ? trisState.board1 : trisState.board2;
@@ -892,7 +766,7 @@
                         setTimeout(() => makeTrisMove(boardNum, move), 600);
                     }
                 }
-            }, 200);
+            }, 100);
         }
 
         function checkWin(board, p) {
@@ -904,9 +778,8 @@
             if (!isTrisOver) {
                 const currentName = trisPlayer === 'X' ? nameP1 : nameP2;
                 document.getElementById('tris-status').textContent = `Turno: ${currentName}`;
-                if (trisPlayer === 'X' || selectedMode === 'pvp') {
-                    document.getElementById('dice-instruction').textContent = "👆 Trascina o fai uno swipe sul dado per lanciarlo!";
-                }
+                const btn = document.getElementById('roll-button');
+                btn.disabled = (selectedMode === 'ai' && trisPlayer === 'O') || currentRoll !== null;
             }
         }
 
@@ -921,9 +794,10 @@
         }
 
         function resetTris() {
-            trisPlayer = 'X'; currentRoll = null; isTrisOver = false; canThrow = true;
+            trisPlayer = 'X'; currentRoll = null; isTrisOver = false; isRolling = false;
             trisState = { board1: Array(9).fill(''), board2: Array(9).fill('') };
             document.getElementById('dice-status').textContent = 'Uscito: -';
+            setDiceToFace(1);
             clearHighlights();
             initTris();
             renderTris();
