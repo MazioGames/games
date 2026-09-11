@@ -483,7 +483,7 @@
         }
 
         // ==========================================
-        // MOTORE DADO 3D FISICO CON ALLINEAMENTO FRONTALE
+        // MOTORE DADO 3D FISICO CON MAPPA CORRETTA AL 100%
         // ==========================================
         let scene, camera, renderer, world;
         let diceMesh, diceBody;
@@ -493,20 +493,30 @@
         let startQuat = new THREE.Quaternion();
         let targetQuat = new THREE.Quaternion();
         let startPos = new THREE.Vector3();
-        let targetPos = new THREE.Vector3(0, 0.9, 1.2); // Posizione centrale e ravvicinata per ottima visibilità
+        let targetPos = new THREE.Vector3(0, 0.9, 1.2); 
 
         let is3dInited = false;
         let touchStartPos = { x: 0, y: 0, time: 0 };
         let canThrow = true;
 
-        // Mappa delle facce e relative rotazioni per rivolgerle frontalmente alla telecamera
-        const faceRotations = {
-            1: new THREE.Euler(0, -Math.PI / 2, 0),
-            2: new THREE.Euler(0, Math.PI / 2, 0),
-            3: new THREE.Euler(Math.PI / 2, 0, 0),
-            4: new THREE.Euler(-Math.PI / 2, 0, 0),
-            5: new THREE.Euler(0, 0, 0),
-            6: new THREE.Euler(0, Math.PI, 0)
+        /*
+         ORDINE STANDARD THREE.JS BOX GEOMETRY:
+         Material 0: +X (Right)  -> Numero 1
+         Material 1: -X (Left)   -> Numero 2
+         Material 2: +Y (Top)    -> Numero 3
+         Material 3: -Y (Bottom) -> Numero 4
+         Material 4: +Z (Front)  -> Numero 5
+         Material 5: -Z (Back)   -> Numero 6
+        */
+
+        // Rotazioni esatte per mostrare direttamente la faccia di interesse di fronte alla telecamera
+        const faceRotationsToFront = {
+            1: new THREE.Euler(0, -Math.PI / 2, 0), // Ruota +X davanti
+            2: new THREE.Euler(0, Math.PI / 2, 0),  // Ruota -X davanti
+            3: new THREE.Euler(Math.PI / 2, 0, 0),  // Ruota +Y davanti
+            4: new THREE.Euler(-Math.PI / 2, 0, 0), // Ruota -Y davanti
+            5: new THREE.Euler(0, 0, 0),            // +Z è già davanti
+            6: new THREE.Euler(0, Math.PI, 0)       // Ruota -Z davanti
         };
 
         function createDiceTexture(number) {
@@ -571,7 +581,7 @@
             world = new CANNON.World();
             world.gravity.set(0, -30, 0);
 
-            // Pavimento fisico
+            // Pavimento
             const floorShape = new CANNON.Plane();
             const floorBody = new CANNON.Body({ mass: 0 });
             floorBody.addShape(floorShape);
@@ -591,13 +601,14 @@
             addWall(-4.5, 0, Math.PI / 2);
             addWall(4.5, 0, -Math.PI / 2);
 
+            // Mappatura Three.js standard
             const materials = [
-                new THREE.MeshStandardMaterial({ map: createDiceTexture(1) }),
-                new THREE.MeshStandardMaterial({ map: createDiceTexture(2) }),
-                new THREE.MeshStandardMaterial({ map: createDiceTexture(3) }),
-                new THREE.MeshStandardMaterial({ map: createDiceTexture(4) }),
-                new THREE.MeshStandardMaterial({ map: createDiceTexture(5) }),
-                new THREE.MeshStandardMaterial({ map: createDiceTexture(6) })
+                new THREE.MeshStandardMaterial({ map: createDiceTexture(1) }), // +X
+                new THREE.MeshStandardMaterial({ map: createDiceTexture(2) }), // -X
+                new THREE.MeshStandardMaterial({ map: createDiceTexture(3) }), // +Y
+                new THREE.MeshStandardMaterial({ map: createDiceTexture(4) }), // -Y
+                new THREE.MeshStandardMaterial({ map: createDiceTexture(5) }), // +Z
+                new THREE.MeshStandardMaterial({ map: createDiceTexture(6) })  // -Z
             ];
 
             const diceGeo = new THREE.BoxGeometry(1.8, 1.8, 1.8);
@@ -611,10 +622,9 @@
             diceBody.position.set(0, 0.9, 1.2);
             world.addBody(diceBody);
 
-            // Posizione iniziale di default (Faccia 1 visibile dritta)
+            // Posizione iniziale
             alignFaceToCamera(1, false);
 
-            // EVENTI TOUCH / MOUSE PER IL LANCIO
             container.addEventListener('pointerdown', handlePointerDown);
             container.addEventListener('pointerup', handlePointerUp);
 
@@ -656,7 +666,7 @@
             document.getElementById('dice-instruction').textContent = "🎲 Il dado sta rotolando...";
 
             diceBody.position.set(0, 2.2, 0);
-            
+
             diceBody.velocity.set(
                 Math.min(Math.max(vx, -8), 8),
                 Math.min(Math.max(vy, 10), 16),
@@ -677,32 +687,32 @@
                 const speed = diceBody.velocity.length() + diceBody.angularVelocity.length();
                 if (speed < 0.25 && diceBody.position.y < 1.3) {
                     clearInterval(checkInterval);
-                    
-                    // Disattiva fisica temporaneamente
+
                     diceBody.velocity.set(0, 0, 0);
                     diceBody.angularVelocity.set(0, 0, 0);
 
-                    // Determina il numero uscito
+                    // Calcola quale faccia è finita verso l'alto (+Y)
                     const rolledValue = getDiceValue();
 
                     isDiceRolling = false;
                     document.getElementById('dice-status').textContent = `Uscito: ${rolledValue}`;
                     currentRoll = rolledValue;
 
-                    // Orientamento perfetto e graduale verso l'osservatore
+                    // Ruota esattamente la faccia "rolledValue" frontalmente
                     alignFaceToCamera(rolledValue, true);
                 }
             }, 100);
         }
 
+        // Determina la faccia rivolta verso l'alto al termine del movimento fisico
         function getDiceValue() {
             const normals = [
-                { val: 1, vec: new THREE.Vector3(1, 0, 0) },
-                { val: 2, vec: new THREE.Vector3(-1, 0, 0) },
-                { val: 3, vec: new THREE.Vector3(0, 1, 0) },
-                { val: 4, vec: new THREE.Vector3(0, -1, 0) },
-                { val: 5, vec: new THREE.Vector3(0, 0, 1) },
-                { val: 6, vec: new THREE.Vector3(0, 0, -1) }
+                { val: 1, vec: new THREE.Vector3(1, 0, 0) },  // +X
+                { val: 2, vec: new THREE.Vector3(-1, 0, 0) }, // -X
+                { val: 3, vec: new THREE.Vector3(0, 1, 0) },  // +Y
+                { val: 4, vec: new THREE.Vector3(0, -1, 0) }, // -Y
+                { val: 5, vec: new THREE.Vector3(0, 0, 1) },  // +Z
+                { val: 6, vec: new THREE.Vector3(0, 0, -1) }  // -Z
             ];
 
             let maxDot = -Infinity;
@@ -721,14 +731,14 @@
             return result;
         }
 
-        // Calcola e anima la rotazione del dado affinché la faccia uscita guardi la telecamera
+        // Ruota la faccia "faceNumber" completamente di fronte all'osservatore
         function alignFaceToCamera(faceNumber, animate = true) {
-            const euler = faceRotations[faceNumber];
+            const baseEuler = faceRotationsToFront[faceNumber];
             
-            // Inclinazione della telecamera per orientare la faccia perfettamente perpendicolare allo schermo
+            // Compensa l'angolo di inclinazione della camera per mostrarla piatta al 100%
             const cameraTilt = new THREE.Euler(Math.atan2(camera.position.y, camera.position.z), 0, 0);
 
-            targetQuat.setFromEuler(euler);
+            targetQuat.setFromEuler(baseEuler);
             targetQuat.premultiply(new THREE.Quaternion().setFromEuler(cameraTilt));
 
             startQuat.copy(diceMesh.quaternion);
@@ -755,14 +765,12 @@
                 diceMesh.quaternion.copy(diceBody.quaternion);
             }
 
-            // Animazione fluida verso la telecamera al termine del lancio
             if (isAnimatingToFront) {
                 animProgress += 0.06;
                 if (animProgress >= 1) {
                     animProgress = 1;
                     isAnimatingToFront = false;
 
-                    // Allinea corpo fisico
                     diceBody.quaternion.copy(targetQuat);
                     diceBody.position.copy(targetPos);
 
@@ -770,7 +778,6 @@
                     checkTrisAvailableMoves();
                 }
 
-                // Interpolazione posizione e rotazione (Slerp)
                 diceMesh.quaternion.slerpQuaternions(startQuat, targetQuat, animProgress);
                 diceMesh.position.lerpVectors(startPos, targetPos, animProgress);
             }
