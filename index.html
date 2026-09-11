@@ -69,9 +69,9 @@
         .option-group { display: flex; gap: 6px; flex-wrap: wrap; }
 
         .select-btn {
-            flex: 1 1 45%;
+            flex: 1 1 30%;
             padding: 8px 4px;
-            font-size: 0.78rem;
+            font-size: 0.75rem;
             font-weight: bold;
             border: 2px solid #cbd5e1;
             background: white;
@@ -154,7 +154,7 @@
 
         footer { display: flex; justify-content: center; flex-shrink: 0; padding-top: 2px; }
 
-        /* AREA DADO ISTANTANEO (2D) */
+        /* AREA DADO ISTANTANEO (TRIS) */
         #dice-area {
             display: flex;
             flex-direction: column;
@@ -163,8 +163,8 @@
         }
 
         #dice-box {
-            width: 100px;
-            height: 100px;
+            width: 90px;
+            height: 90px;
             background: white;
             border: 3px solid #cbd5e1;
             border-radius: 16px;
@@ -338,6 +338,94 @@
         .center-info { position: absolute; text-align: center; pointer-events: none; }
         .target-num { font-size: 0.75rem; color: #64748b; }
         .target-val { font-size: 1.8rem; font-weight: bold; color: #10b981; }
+
+        /* PINBALL FORZA 4 */
+        .pinball-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex-grow: 1;
+            gap: 10px;
+        }
+
+        .pinball-frame {
+            position: relative;
+            background: rgba(255, 255, 255, 0.8);
+            border: 4px solid #38bdf8;
+            border-radius: 120px 120px 16px 16px;
+            padding: 16px 12px 12px 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .pinball-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            background: #facc15;
+            padding: 8px;
+            border-radius: 8px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.15);
+        }
+
+        .p4-cell {
+            width: 34px;
+            height: 34px;
+            background-color: #f1f5f9;
+            border-radius: 50%;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .p4-cell.red { background: var(--player1-color); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .p4-cell.blue { background: var(--player2-color); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+
+        .spring-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 280px;
+            gap: 6px;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+
+        .power-bar-bg {
+            width: 100%;
+            height: 14px;
+            background: #e2e8f0;
+            border-radius: 7px;
+            overflow: hidden;
+            border: 1px solid #cbd5e1;
+        }
+
+        .power-bar-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #ef4444);
+            transition: width 0.05s linear;
+        }
+
+        .shoot-btn {
+            width: 100%;
+            padding: 10px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            background-color: #8b5cf6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            user-select: none;
+        }
+
+        .shoot-btn:disabled { background-color: #94a3b8; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -351,6 +439,7 @@
             <div class="option-group">
                 <button class="select-btn active" id="btn-game-tris" onclick="selectGame('tris')">🎲 Tris Dado</button>
                 <button class="select-btn" id="btn-game-memory" onclick="selectGame('memory')">⏱️ Memory</button>
+                <button class="select-btn" id="btn-game-pinball" onclick="selectGame('pinball')">🚀 Pinball 4</button>
             </div>
         </div>
 
@@ -429,6 +518,36 @@
         </footer>
     </div>
 
+    <!-- SCHERMATA PINBALL FORZA 4 -->
+    <div id="game-pinball" class="screen">
+        <header>
+            <div class="game-title">🚀 Pinball Forza 4</div>
+            <button class="back-btn" onclick="showMenu()">🏠 Menu</button>
+        </header>
+
+        <div class="controls">
+            <div class="status" id="p4-status">Turno: P1</div>
+            <div class="status" id="p4-last-col">Lancio: -</div>
+        </div>
+
+        <div class="pinball-wrapper">
+            <div class="pinball-frame">
+                <div class="pinball-grid" id="p4-grid"></div>
+            </div>
+
+            <div class="spring-container">
+                <div class="power-bar-bg">
+                    <div class="power-bar-fill" id="power-fill"></div>
+                </div>
+                <button id="p4-shoot-btn" class="shoot-btn">🚀 Carica Molla & Spara</button>
+            </div>
+        </div>
+
+        <footer>
+            <button class="action-btn reset-btn" onclick="resetPinball()">Nuova Partita</button>
+        </footer>
+    </div>
+
     <script>
         let selectedGame = 'tris';
         let selectedMode = 'ai';
@@ -439,6 +558,7 @@
             selectedGame = game;
             document.getElementById('btn-game-tris').classList.toggle('active', game === 'tris');
             document.getElementById('btn-game-memory').classList.toggle('active', game === 'memory');
+            document.getElementById('btn-game-pinball').classList.toggle('active', game === 'pinball');
         }
 
         function selectMode(mode) {
@@ -468,6 +588,9 @@
             } else if (selectedGame === 'memory') {
                 document.getElementById('game-memory').classList.add('active');
                 resetMemory();
+            } else if (selectedGame === 'pinball') {
+                document.getElementById('game-pinball').classList.add('active');
+                resetPinball();
             }
         }
 
@@ -503,8 +626,6 @@
 
         function executeRoll() {
             currentRoll = Math.floor(Math.random() * 6) + 1;
-            
-            // Aggiorna istantaneamente sia il riquadro grafico che il testo
             document.getElementById('dice-box').textContent = diceSymbols[currentRoll];
             document.getElementById('dice-status').textContent = `Uscito: ${currentRoll}`;
             document.getElementById('roll-button').disabled = true;
@@ -616,7 +737,6 @@
 
         function trisAiTurn() {
             executeRoll();
-
             if (currentRoll !== null) {
                 const { boardNum, colIndex } = getTargetColumn(currentRoll);
                 const arr = boardNum === 1 ? trisState.board1 : trisState.board2;
@@ -682,13 +802,11 @@
         function initMemory() {
             cardsValues = shuffle([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
             cardColors = cardsValues.map(() => colorsList[Math.floor(Math.random() * colorsList.length)]);
-            
             revealedState.fill(false);
             aiMemory.fill(null);
             targetValue = 0;
             memPlayer = 1;
             isMemLock = false;
-
             lastUserFlippedCard = -1;
             lastAiFlippedCard = -1;
 
@@ -714,28 +832,14 @@
                 
                 if (!revealedState[i]) {
                     card.classList.add('covered');
-                    card.innerHTML = `
-                        <div class="card-brand">
-                            <span class="brand-text-top">MAZIO</span>
-                            <span class="brand-text-bottom">GAMES</span>
-                        </div>
-                    `;
+                    card.innerHTML = `<div class="card-brand"><span class="brand-text-top">MAZIO</span><span class="brand-text-bottom">GAMES</span></div>`;
                 } else {
                     card.classList.add('revealed', cardColors[i]);
-                    card.innerHTML = `
-                        <div class="card-inner">
-                            <div class="card-num-mini top-left">${cardsValues[i]}</div>
-                            <div class="card-center-box">
-                                <span class="card-num-main">${cardsValues[i]}</span>
-                            </div>
-                            <div class="card-num-mini bottom-right">${cardsValues[i]}</div>
-                        </div>
-                    `;
+                    card.innerHTML = `<div class="card-inner"><div class="card-num-mini top-left">${cardsValues[i]}</div><div class="card-center-box"><span class="card-num-main">${cardsValues[i]}</span></div><div class="card-num-mini bottom-right">${cardsValues[i]}</div></div>`;
                 }
 
                 card.style.transform = `translate(${x}px, ${y}px)`;
                 card.addEventListener('click', () => handleCardClick(i));
-
                 container.appendChild(card);
             }
         }
@@ -743,7 +847,6 @@
         function handleCardClick(index) {
             if (isMemLock || revealedState[index]) return;
             if (selectedMode === 'ai' && memPlayer === 2) return;
-
             if (memPlayer === 1) lastUserFlippedCard = index;
             processTurn(index);
         }
@@ -751,7 +854,6 @@
         function processTurn(index) {
             isMemLock = true;
             const val = cardsValues[index];
-
             if (memPlayer === 2 && selectedMode === 'ai') lastAiFlippedCard = index;
 
             if (Math.random() < 0.60) aiMemory[index] = val;
@@ -776,7 +878,6 @@
                     for (let i = 0; i < 10; i++) {
                         if (aiMemory[i] !== null && Math.random() < 0.30) aiMemory[i] = null;
                     }
-
                     revealedState.fill(false);
                     targetValue = 0;
                     document.getElementById('target-val').textContent = targetValue;
@@ -793,18 +894,12 @@
 
         function memAiTurn() {
             if (isMemLock || targetValue > 9) return;
-
             let validIndices = [];
             for (let i = 0; i < 10; i++) {
-                if (!revealedState[i] && i !== lastUserFlippedCard && i !== lastAiFlippedCard) {
-                    validIndices.push(i);
-                }
+                if (!revealedState[i] && i !== lastUserFlippedCard && i !== lastAiFlippedCard) validIndices.push(i);
             }
-
             if (validIndices.length === 0) {
-                for (let i = 0; i < 10; i++) {
-                    if (!revealedState[i]) validIndices.push(i);
-                }
+                for (let i = 0; i < 10; i++) if (!revealedState[i]) validIndices.push(i);
             }
 
             let chosenIndex = -1;
@@ -813,11 +908,7 @@
                 chosenIndex = rememberedIndex;
             } else {
                 let unknownValidIndices = validIndices.filter(i => aiMemory[i] === null);
-                if (unknownValidIndices.length > 0) {
-                    chosenIndex = unknownValidIndices[Math.floor(Math.random() * unknownValidIndices.length)];
-                } else {
-                    chosenIndex = validIndices[Math.floor(Math.random() * validIndices.length)];
-                }
+                chosenIndex = unknownValidIndices.length > 0 ? unknownValidIndices[Math.floor(Math.random() * unknownValidIndices.length)] : validIndices[Math.floor(Math.random() * validIndices.length)];
             }
 
             processTurn(chosenIndex);
@@ -830,6 +921,178 @@
 
         function resetMemory() {
             initMemory();
+        }
+
+        // ==========================================
+        // LOGICA PINBALL FORZA 4
+        // ==========================================
+        let p4Board = Array(6).fill(null).map(() => Array(7).fill(''));
+        let p4Player = 'red';
+        let isP4Over = false;
+        let springPower = 0;
+        let springInterval = null;
+        let isCharging = false;
+
+        function initPinball() {
+            p4Board = Array(6).fill(null).map(() => Array(7).fill(''));
+            p4Player = 'red';
+            isP4Over = false;
+            document.getElementById('p4-last-col').textContent = 'Lancio: -';
+            updateP4Status();
+            renderP4Board();
+            setupSpringControls();
+        }
+
+        function renderP4Board() {
+            const grid = document.getElementById('p4-grid');
+            grid.innerHTML = '';
+            for (let r = 0; r < 6; r++) {
+                for (let c = 0; c < 7; c++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('p4-cell');
+                    if (p4Board[r][c] === 'red') cell.classList.add('red');
+                    if (p4Board[r][c] === 'blue') cell.classList.add('blue');
+                    grid.appendChild(cell);
+                }
+            }
+        }
+
+        function setupSpringControls() {
+            const btn = document.getElementById('p4-shoot-btn');
+            
+            // Gestione del tasto per caricare la molla (Mouse/Touch)
+            const startCharge = (e) => {
+                e.preventDefault();
+                if (isP4Over || isCharging) return;
+                if (selectedMode === 'ai' && p4Player === 'blue') return;
+
+                isCharging = true;
+                springPower = 0;
+                springInterval = setInterval(() => {
+                    springPower = (springPower + 5) % 105;
+                    document.getElementById('power-fill').style.width = springPower + '%';
+                }, 30);
+            };
+
+            const releaseCharge = (e) => {
+                e.preventDefault();
+                if (!isCharging) return;
+                clearInterval(springInterval);
+                isCharging = false;
+                shootPiece(springPower);
+                springPower = 0;
+                document.getElementById('power-fill').style.width = '0%';
+            };
+
+            btn.onmousedown = startCharge;
+            btn.onmouseup = releaseCharge;
+            btn.ontouchstart = startCharge;
+            btn.ontouchend = releaseCharge;
+        }
+
+        function shootPiece(power) {
+            // Calcolo la colonna (0-6) basandomi sulla potenza + un piccolo bounce di casualità flipper
+            let baseCol = Math.floor((power / 100) * 7);
+            if (baseCol > 6) baseCol = 6;
+
+            // Inseriamo la deviazione della cupola del flipper (-1, 0, +1 colonna)
+            const deviation = Math.floor(Math.random() * 3) - 1;
+            let targetCol = Math.max(0, Math.min(6, baseCol + deviation));
+
+            // Se la colonna scelta è piena, trova la prima colonna libera più vicina
+            if (isColFull(targetCol)) {
+                let freeCols = [];
+                for (let c = 0; c < 7; c++) {
+                    if (!isColFull(c)) freeCols.push(c);
+                }
+                if (freeCols.length === 0) {
+                    alert("Tabellone pieno! Pareggio.");
+                    isP4Over = true;
+                    return;
+                }
+                targetCol = freeCols[Math.floor(Math.random() * freeCols.length)];
+            }
+
+            // Inserisci pedina
+            dropPieceInCol(targetCol);
+        }
+
+        function isColFull(col) {
+            return p4Board[0][col] !== '';
+        }
+
+        function dropPieceInCol(col) {
+            for (let r = 5; r >= 0; r--) {
+                if (p4Board[r][col] === '') {
+                    p4Board[r][col] = p4Player;
+                    break;
+                }
+            }
+
+            document.getElementById('p4-last-col').textContent = `Lancio: Col. ${col + 1}`;
+            renderP4Board();
+
+            if (checkP4Win(p4Player)) {
+                const winnerName = p4Player === 'red' ? nameP1 : nameP2;
+                document.getElementById('p4-status').textContent = `🎉 ${winnerName} Vince!`;
+                isP4Over = true;
+                document.getElementById('p4-shoot-btn').disabled = true;
+                return;
+            }
+
+            p4Player = p4Player === 'red' ? 'blue' : 'red';
+            updateP4Status();
+
+            if (selectedMode === 'ai' && p4Player === 'blue' && !isP4Over) {
+                setTimeout(p4AiTurn, 600);
+            }
+        }
+
+        function p4AiTurn() {
+            // Simulazione carica casuale dell'IA
+            const randomPower = Math.floor(Math.random() * 90) + 10;
+            shootPiece(randomPower);
+        }
+
+        function checkP4Win(p) {
+            // Orizzontale
+            for (let r = 0; r < 6; r++) {
+                for (let c = 0; c < 4; c++) {
+                    if (p4Board[r][c] === p && p4Board[r][c+1] === p && p4Board[r][c+2] === p && p4Board[r][c+3] === p) return true;
+                }
+            }
+            // Verticale
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 7; c++) {
+                    if (p4Board[r][c] === p && p4Board[r+1][c] === p && p4Board[r+2][c] === p && p4Board[r+3][c] === p) return true;
+                }
+            }
+            // Diagonale /
+            for (let r = 3; r < 6; r++) {
+                for (let c = 0; c < 4; c++) {
+                    if (p4Board[r][c] === p && p4Board[r-1][c+1] === p && p4Board[r-2][c+2] === p && p4Board[r-3][c+3] === p) return true;
+                }
+            }
+            // Diagonale \
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 4; c++) {
+                    if (p4Board[r][c] === p && p4Board[r+1][c+1] === p && p4Board[r+2][c+2] === p && p4Board[r+3][c+3] === p) return true;
+                }
+            }
+            return false;
+        }
+
+        function updateP4Status() {
+            if (!isP4Over) {
+                const currentName = p4Player === 'red' ? nameP1 : nameP2;
+                document.getElementById('p4-status').textContent = `Turno: ${currentName}`;
+                const btn = document.getElementById('p4-shoot-btn');
+                btn.disabled = (selectedMode === 'ai' && p4Player === 'blue');
+            }
+        }
+
+        function resetPinball() {
+            initPinball();
         }
     </script>
 </body>
