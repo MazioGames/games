@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MazioGames Salotto</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         :root {
             --bg-color: #f1f5f9;
@@ -155,7 +154,7 @@
 
         footer { display: flex; justify-content: center; flex-shrink: 0; padding-top: 2px; }
 
-        /* AREA CANVAS DADO 3D */
+        /* AREA DADO ISTANTANEO (2D) */
         #dice-area {
             display: flex;
             flex-direction: column;
@@ -163,14 +162,18 @@
             gap: 6px;
         }
 
-        #dice-container {
-            width: 100%;
-            height: 130px;
-            background: #cbd5e1;
-            border-radius: 10px;
-            position: relative;
-            overflow: hidden;
-            box-shadow: inset 0 2px 6px rgba(0,0,0,0.15);
+        #dice-box {
+            width: 100px;
+            height: 100px;
+            background: white;
+            border: 3px solid #cbd5e1;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            user-select: none;
         }
 
         .roll-btn {
@@ -346,7 +349,7 @@
         <div class="menu-section">
             <div class="menu-label">1. Scegli il Gioco</div>
             <div class="option-group">
-                <button class="select-btn active" id="btn-game-tris" onclick="selectGame('tris')">🎲 Tris Dado 3D</button>
+                <button class="select-btn active" id="btn-game-tris" onclick="selectGame('tris')">🎲 Tris Dado</button>
                 <button class="select-btn" id="btn-game-memory" onclick="selectGame('memory')">⏱️ Memory</button>
             </div>
         </div>
@@ -370,10 +373,10 @@
         <button class="start-btn" onclick="startGame()">GIOCA</button>
     </div>
 
-    <!-- SCHERMATA TRIS DADO 3D -->
+    <!-- SCHERMATA TRIS DADO -->
     <div id="game-tris" class="screen">
         <header>
-            <div class="game-title">🎲 Tris Dado 3D</div>
+            <div class="game-title">🎲 Tris Dado</div>
             <button class="back-btn" onclick="showMenu()">🏠 Menu</button>
         </header>
 
@@ -383,7 +386,7 @@
         </div>
 
         <div id="dice-area">
-            <div id="dice-container"></div>
+            <div id="dice-box">🎲</div>
             <button id="roll-button" class="roll-btn" onclick="userRollDice()">🎲 Lancia Dado</button>
         </div>
 
@@ -461,10 +464,7 @@
 
             if (selectedGame === 'tris') {
                 document.getElementById('game-tris').classList.add('active');
-                setTimeout(() => {
-                    init3DDice();
-                    resetTris();
-                }, 50);
+                resetTris();
             } else if (selectedGame === 'memory') {
                 document.getElementById('game-memory').classList.add('active');
                 resetMemory();
@@ -486,161 +486,7 @@
         }
 
         // ==========================================
-        // MOTORE DADO 3D (SISTEMATO E FUNZIONANTE)
-        // ==========================================
-        let scene, camera, renderer;
-        let diceMesh;
-        let is3dInited = false;
-        let isRolling = false;
-
-        const faceRotationsToTop = {
-            1: new THREE.Euler(0, 0, -Math.PI / 2),
-            2: new THREE.Euler(0, 0, Math.PI / 2),
-            3: new THREE.Euler(0, 0, 0),
-            4: new THREE.Euler(Math.PI, 0, 0),
-            5: new THREE.Euler(-Math.PI / 2, 0, 0),
-            6: new THREE.Euler(Math.PI / 2, 0, 0)
-        };
-
-        function createDiceTexture(number) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 128;
-            canvas.height = 128;
-            const ctx = canvas.getContext('2d');
-
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, 128, 128);
-            ctx.lineWidth = 8;
-            ctx.strokeStyle = '#cbd5e1';
-            ctx.strokeRect(0, 0, 128, 128);
-
-            ctx.fillStyle = '#0f172a';
-            const dots = {
-                1: [[64, 64]],
-                2: [[32, 32], [96, 96]],
-                3: [[32, 32], [64, 64], [96, 96]],
-                4: [[32, 32], [32, 96], [96, 32], [96, 96]],
-                5: [[32, 32], [32, 96], [64, 64], [96, 32], [96, 96]],
-                6: [[32, 32], [32, 64], [32, 96], [96, 32], [96, 64], [96, 96]]
-            };
-
-            dots[number].forEach(([x, y]) => {
-                ctx.beginPath();
-                ctx.arc(x, y, 13, 0, Math.PI * 2);
-                ctx.fill();
-            });
-
-            return new THREE.CanvasTexture(canvas);
-        }
-
-        function init3DDice() {
-            const container = document.getElementById('dice-container');
-            const width = container.clientWidth || 300;
-            const height = container.clientHeight || 130;
-
-            if (!is3dInited) {
-                is3dInited = true;
-
-                scene = new THREE.Scene();
-                scene.background = new THREE.Color(0xcbd5e1);
-
-                camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
-                camera.position.set(0, 5, 6);
-                camera.lookAt(0, 0, 0);
-
-                renderer = new THREE.WebGLRenderer({ antialias: true });
-                renderer.setSize(width, height);
-                container.appendChild(renderer.domElement);
-
-                const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
-                scene.add(ambientLight);
-
-                const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
-                dirLight.position.set(3, 10, 5);
-                scene.add(dirLight);
-
-                const materials = [
-                    new THREE.MeshStandardMaterial({ map: createDiceTexture(1) }),
-                    new THREE.MeshStandardMaterial({ map: createDiceTexture(2) }),
-                    new THREE.MeshStandardMaterial({ map: createDiceTexture(3) }),
-                    new THREE.MeshStandardMaterial({ map: createDiceTexture(4) }),
-                    new THREE.MeshStandardMaterial({ map: createDiceTexture(5) }),
-                    new THREE.MeshStandardMaterial({ map: createDiceTexture(6) })
-                ];
-
-                const diceGeo = new THREE.BoxGeometry(2, 2, 2);
-                diceMesh = new THREE.Mesh(diceGeo, materials);
-                scene.add(diceMesh);
-
-                setDiceToFace(1);
-                animate3D();
-            } else {
-                renderer.setSize(width, height);
-                camera.aspect = width / height;
-                camera.updateProjectionMatrix();
-            }
-        }
-
-        function setDiceToFace(number) {
-            if (diceMesh) {
-                const euler = faceRotationsToTop[number];
-                diceMesh.quaternion.setFromEuler(euler);
-            }
-        }
-
-        function animate3D() {
-            requestAnimationFrame(animate3D);
-            if (renderer && scene && camera) {
-                renderer.render(scene, camera);
-            }
-        }
-
-        function userRollDice() {
-            if (isRolling || isTrisOver || currentRoll !== null) return;
-            if (selectedMode === 'ai' && trisPlayer === 'O') return;
-            executeRoll();
-        }
-
-        function executeRoll() {
-            isRolling = true;
-            document.getElementById('roll-button').disabled = true;
-
-            const rolledValue = Math.floor(Math.random() * 6) + 1;
-            const targetQuat = new THREE.Quaternion().setFromEuler(faceRotationsToTop[rolledValue]);
-
-            let startTime = null;
-            const duration = 1000;
-
-            const startQuat = diceMesh.quaternion.clone();
-
-            function animateRoll(timestamp) {
-                if (!startTime) startTime = timestamp;
-                const elapsed = timestamp - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-
-                const easeOut = 1 - Math.pow(1 - progress, 3);
-
-                if (progress < 1) {
-                    // Animazione rotazione libera durante lo slerp
-                    diceMesh.rotation.x += 0.2;
-                    diceMesh.rotation.y += 0.25;
-                    requestAnimationFrame(animateRoll);
-                } else {
-                    diceMesh.quaternion.copy(targetQuat);
-                    isRolling = false;
-                    currentRoll = rolledValue;
-                    document.getElementById('dice-status').textContent = `Uscito: ${currentRoll}`;
-
-                    highlightValidColumns();
-                    checkTrisAvailableMoves();
-                }
-            }
-
-            requestAnimationFrame(animateRoll);
-        }
-
-        // ==========================================
-        // LOGICA TRIS
+        // LOGICA TRIS (DADO ISTANTANEO 2D)
         // ==========================================
         const diceSymbols = ['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
         let trisPlayer = 'X';
@@ -648,6 +494,24 @@
         let isTrisOver = false;
         let columnMapping = [];
         let trisState = { board1: Array(9).fill(''), board2: Array(9).fill('') };
+
+        function userRollDice() {
+            if (isTrisOver || currentRoll !== null) return;
+            if (selectedMode === 'ai' && trisPlayer === 'O') return;
+            executeRoll();
+        }
+
+        function executeRoll() {
+            currentRoll = Math.floor(Math.random() * 6) + 1;
+            
+            // Aggiorna istantaneamente sia il riquadro grafico che il testo
+            document.getElementById('dice-box').textContent = diceSymbols[currentRoll];
+            document.getElementById('dice-status').textContent = `Uscito: ${currentRoll}`;
+            document.getElementById('roll-button').disabled = true;
+
+            highlightValidColumns();
+            checkTrisAvailableMoves();
+        }
 
         function initTris() {
             columnMapping = shuffle([1, 2, 3, 4, 5, 6]);
@@ -698,7 +562,7 @@
         }
 
         function handleTrisClick(boardNum, index) {
-            if (isTrisOver || currentRoll === null || isRolling) return;
+            if (isTrisOver || currentRoll === null) return;
             if (selectedMode === 'ai' && trisPlayer === 'O') return;
             const { boardNum: targetBoard, colIndex } = getTargetColumn(currentRoll);
             if (boardNum === targetBoard && index % 3 === colIndex) makeTrisMove(boardNum, index);
@@ -726,7 +590,7 @@
                 updateTrisStatus();
 
                 if (selectedMode === 'ai' && trisPlayer === 'O' && !isTrisOver) {
-                    setTimeout(trisAiTurn, 600);
+                    setTimeout(trisAiTurn, 400);
                 }
             }
         }
@@ -745,28 +609,25 @@
                     document.getElementById('dice-status').textContent = 'Uscito: -';
                     clearHighlights();
                     updateTrisStatus();
-                    if (selectedMode === 'ai' && trisPlayer === 'O' && !isTrisOver) setTimeout(trisAiTurn, 600);
-                }, 300);
+                    if (selectedMode === 'ai' && trisPlayer === 'O' && !isTrisOver) setTimeout(trisAiTurn, 400);
+                }, 200);
             }
         }
 
         function trisAiTurn() {
             executeRoll();
 
-            const checkAiDone = setInterval(() => {
-                if (!isRolling && currentRoll !== null) {
-                    clearInterval(checkAiDone);
-                    const { boardNum, colIndex } = getTargetColumn(currentRoll);
-                    const arr = boardNum === 1 ? trisState.board1 : trisState.board2;
-                    let valid = [];
-                    for (let i = colIndex; i < 9; i += 3) { if (arr[i] === '') valid.push(i); }
+            if (currentRoll !== null) {
+                const { boardNum, colIndex } = getTargetColumn(currentRoll);
+                const arr = boardNum === 1 ? trisState.board1 : trisState.board2;
+                let valid = [];
+                for (let i = colIndex; i < 9; i += 3) { if (arr[i] === '') valid.push(i); }
 
-                    if (valid.length > 0) {
-                        let move = valid[Math.floor(Math.random() * valid.length)];
-                        setTimeout(() => makeTrisMove(boardNum, move), 600);
-                    }
+                if (valid.length > 0) {
+                    let move = valid[Math.floor(Math.random() * valid.length)];
+                    setTimeout(() => makeTrisMove(boardNum, move), 500);
                 }
-            }, 100);
+            }
         }
 
         function checkWin(board, p) {
@@ -794,10 +655,10 @@
         }
 
         function resetTris() {
-            trisPlayer = 'X'; currentRoll = null; isTrisOver = false; isRolling = false;
+            trisPlayer = 'X'; currentRoll = null; isTrisOver = false;
             trisState = { board1: Array(9).fill(''), board2: Array(9).fill('') };
+            document.getElementById('dice-box').textContent = '🎲';
             document.getElementById('dice-status').textContent = 'Uscito: -';
-            setDiceToFace(1);
             clearHighlights();
             initTris();
             renderTris();
