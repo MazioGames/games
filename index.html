@@ -263,8 +263,8 @@
         /* --- MEMORY STILO CARTE PERSONALIZZATE (MAZIOGAMES) --- */
         .circle-container {
             position: relative;
-            width: 280px;
-            height: 280px;
+            width: 310px;
+            height: 310px;
             margin: 0 auto;
             flex-grow: 1;
             display: flex;
@@ -274,18 +274,18 @@
 
         .card {
             position: absolute;
-            width: 44px;
-            height: 62px;
-            border-radius: 8px;
+            width: 38px;
+            height: 54px;
+            border-radius: 6px;
             cursor: pointer;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
             user-select: none;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: transform 0.2s;
             overflow: hidden;
-            border: 2px solid #ffffff;
+            border: 1.5px solid #ffffff;
         }
 
         /* RETRO CARTA: BRANDED MAZIOGAMES */
@@ -302,7 +302,7 @@
             width: 90%;
             height: 90%;
             border: 1px dashed rgba(255, 255, 255, 0.2);
-            border-radius: 5px;
+            border-radius: 4px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -311,18 +311,18 @@
         }
 
         .brand-text-top {
-            font-size: 0.42rem;
+            font-size: 0.36rem;
             font-weight: 900;
             color: #38bdf8;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.4px;
             text-transform: uppercase;
         }
 
         .brand-text-bottom {
-            font-size: 0.42rem;
+            font-size: 0.36rem;
             font-weight: 900;
             color: #f43f5e;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.4px;
             text-transform: uppercase;
         }
 
@@ -341,32 +341,32 @@
         }
 
         .card-center-box {
-            width: 28px;
-            height: 38px;
+            width: 24px;
+            height: 32px;
             background-color: #ffffff;
-            border-radius: 6px;
+            border-radius: 5px;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
 
         .card-num-main {
-            font-size: 1.2rem;
+            font-size: 1rem;
             font-weight: 800;
         }
 
         .card-num-mini {
             position: absolute;
-            font-size: 0.55rem;
+            font-size: 0.48rem;
             font-weight: 800;
             color: #ffffff;
         }
 
-        .card-num-mini.top-left { top: 3px; left: 4px; }
-        .card-num-mini.bottom-right { bottom: 3px; right: 4px; transform: rotate(180deg); }
+        .card-num-mini.top-left { top: 2px; left: 3px; }
+        .card-num-mini.bottom-right { bottom: 2px; right: 3px; transform: rotate(180deg); }
 
-        /* NUOVA PALETTE CROMATICA STORE-SAFE */
+        /* PALETTE CROMATICA STORE-SAFE */
         .card-purple { background-color: #8b5cf6; }
         .card-purple .card-num-main { color: #8b5cf6; }
 
@@ -745,7 +745,7 @@
             const container = document.getElementById('circle-board');
             container.querySelectorAll('.card').forEach(c => c.remove());
 
-            const radius = 105;
+            const radius = 125; // Aumentato il raggio per spaziare le carte
             const total = 10;
 
             for (let i = 0; i < total; i++) {
