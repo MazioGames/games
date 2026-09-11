@@ -175,8 +175,8 @@
 
         .roll-btn {
             width: 100%;
-            padding: 8px;
-            font-size: 0.95rem;
+            padding: 10px;
+            font-size: 1rem;
             font-weight: bold;
             background-color: #3b82f6;
             color: white;
@@ -427,7 +427,6 @@
     </div>
 
     <script>
-        // CONFIGURAZIONE GENERALE
         let selectedGame = 'tris';
         let selectedMode = 'ai';
         let nameP1 = "Giocatore 1";
@@ -465,7 +464,7 @@
                 setTimeout(() => {
                     init3DDice();
                     resetTris();
-                }, 100);
+                }, 50);
             } else if (selectedGame === 'memory') {
                 document.getElementById('game-memory').classList.add('active');
                 resetMemory();
@@ -487,14 +486,13 @@
         }
 
         // ==========================================
-        // MOTORE DADO 3D (ANIMAZIONE TASTO)
+        // MOTORE DADO 3D (SISTEMATO E FUNZIONANTE)
         // ==========================================
         let scene, camera, renderer;
         let diceMesh;
         let is3dInited = false;
         let isRolling = false;
 
-        // Mappa orientamento per posizionare ogni faccia IN ALTO (Top Face +Y)
         const faceRotationsToTop = {
             1: new THREE.Euler(0, 0, -Math.PI / 2),
             2: new THREE.Euler(0, 0, Math.PI / 2),
@@ -537,50 +535,57 @@
 
         function init3DDice() {
             const container = document.getElementById('dice-container');
-            if (is3dInited) {
-                renderer.setSize(container.clientWidth, container.clientHeight);
-                return;
+            const width = container.clientWidth || 300;
+            const height = container.clientHeight || 130;
+
+            if (!is3dInited) {
+                is3dInited = true;
+
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0xcbd5e1);
+
+                camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
+                camera.position.set(0, 5, 6);
+                camera.lookAt(0, 0, 0);
+
+                renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(width, height);
+                container.appendChild(renderer.domElement);
+
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+                scene.add(ambientLight);
+
+                const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+                dirLight.position.set(3, 10, 5);
+                scene.add(dirLight);
+
+                const materials = [
+                    new THREE.MeshStandardMaterial({ map: createDiceTexture(1) }),
+                    new THREE.MeshStandardMaterial({ map: createDiceTexture(2) }),
+                    new THREE.MeshStandardMaterial({ map: createDiceTexture(3) }),
+                    new THREE.MeshStandardMaterial({ map: createDiceTexture(4) }),
+                    new THREE.MeshStandardMaterial({ map: createDiceTexture(5) }),
+                    new THREE.MeshStandardMaterial({ map: createDiceTexture(6) })
+                ];
+
+                const diceGeo = new THREE.BoxGeometry(2, 2, 2);
+                diceMesh = new THREE.Mesh(diceGeo, materials);
+                scene.add(diceMesh);
+
+                setDiceToFace(1);
+                animate3D();
+            } else {
+                renderer.setSize(width, height);
+                camera.aspect = width / height;
+                camera.updateProjectionMatrix();
             }
-            is3dInited = true;
-
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0xcbd5e1);
-
-            camera = new THREE.PerspectiveCamera(40, container.clientWidth / container.clientHeight, 0.1, 100);
-            camera.position.set(0, 5, 6);
-            camera.lookAt(0, 0, 0);
-
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(container.clientWidth, container.clientHeight);
-            container.appendChild(renderer.domElement);
-
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
-            scene.add(ambientLight);
-
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
-            dirLight.position.set(3, 10, 5);
-            scene.add(dirLight);
-
-            const materials = [
-                new THREE.MeshStandardMaterial({ map: createDiceTexture(1) }),
-                new THREE.MeshStandardMaterial({ map: createDiceTexture(2) }),
-                new THREE.MeshStandardMaterial({ map: createDiceTexture(3) }),
-                new THREE.MeshStandardMaterial({ map: createDiceTexture(4) }),
-                new THREE.MeshStandardMaterial({ map: createDiceTexture(5) }),
-                new THREE.MeshStandardMaterial({ map: createDiceTexture(6) })
-            ];
-
-            const diceGeo = new THREE.BoxGeometry(2, 2, 2);
-            diceMesh = new THREE.Mesh(diceGeo, materials);
-            scene.add(diceMesh);
-
-            setDiceToFace(1);
-            animate3D();
         }
 
         function setDiceToFace(number) {
-            const euler = faceRotationsToTop[number];
-            diceMesh.quaternion.setFromEuler(euler);
+            if (diceMesh) {
+                const euler = faceRotationsToTop[number];
+                diceMesh.quaternion.setFromEuler(euler);
+            }
         }
 
         function animate3D() {
@@ -604,11 +609,8 @@
             const targetQuat = new THREE.Quaternion().setFromEuler(faceRotationsToTop[rolledValue]);
 
             let startTime = null;
-            const duration = 1000; // 1 secondo di rotazione
+            const duration = 1000;
 
-            // Rotazioni casuali durante l'animazione
-            const randomX = (Math.random() * 4 + 4) * Math.PI;
-            const randomY = (Math.random() * 4 + 4) * Math.PI;
             const startQuat = diceMesh.quaternion.clone();
 
             function animateRoll(timestamp) {
@@ -616,14 +618,12 @@
                 const elapsed = timestamp - startTime;
                 const progress = Math.min(elapsed / duration, 1);
 
-                // Easing out per rallentare alla fine
                 const easeOut = 1 - Math.pow(1 - progress, 3);
 
                 if (progress < 1) {
-                    const tempEuler = new THREE.Euler(randomX * (1 - progress), randomY * (1 - progress), 0);
-                    const spinQuat = new THREE.Quaternion().setFromEuler(tempEuler);
-                    
-                    diceMesh.quaternion.slerpQuaternions(startQuat, targetQuat, easeOut).multiply(spinQuat);
+                    // Animazione rotazione libera durante lo slerp
+                    diceMesh.rotation.x += 0.2;
+                    diceMesh.rotation.y += 0.25;
                     requestAnimationFrame(animateRoll);
                 } else {
                     diceMesh.quaternion.copy(targetQuat);
