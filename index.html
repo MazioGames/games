@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mini Giochi Mobile</title>
+    <title>MazioGames Salotto</title>
     <style>
         :root {
             --bg-color: #f1f5f9;
@@ -260,7 +260,7 @@
         .cell.X { color: var(--player1-color); }
         .cell.O { color: var(--player2-color); }
 
-        /* --- MEMORY STILO CARTE --- */
+        /* --- MEMORY STILO CARTE PERSONALIZZATE (MAZIOGAMES) --- */
         .circle-container {
             position: relative;
             width: 280px;
@@ -272,50 +272,61 @@
             justify-content: center;
         }
 
-        /* STRUTTURA CARTA */
         .card {
             position: absolute;
-            width: 42px;
-            height: 60px;
-            border-radius: 6px;
+            width: 44px;
+            height: 62px;
+            border-radius: 8px;
             cursor: pointer;
-            box-shadow: 0 3px 6px rgba(0,0,0,0.25);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
             user-select: none;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: transform 0.2s;
             overflow: hidden;
-            border: 2px solid white;
+            border: 2px solid #ffffff;
         }
 
-        /* RETRO CARTA IN STILE "UNO" */
+        /* RETRO CARTA: BRANDED MAZIOGAMES */
         .card.covered {
-            background: #1e1e1e;
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2px;
         }
 
-        .card.covered::before {
-            content: '';
-            position: absolute;
-            width: 32px;
-            height: 50px;
-            background: linear-gradient(135deg, #e11d48, #d97706);
-            border-radius: 50%;
-            transform: rotate(-25deg);
+        .card-brand {
+            width: 90%;
+            height: 90%;
+            border: 1px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.03);
         }
 
-        .card.covered::after {
-            content: 'UNO';
-            position: absolute;
-            font-size: 0.6rem;
+        .brand-text-top {
+            font-size: 0.42rem;
             font-weight: 900;
-            color: #facc15;
-            font-style: italic;
-            text-shadow: 1px 1px 0px #000;
-            transform: rotate(-25deg);
+            color: #38bdf8;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
         }
 
-        /* FRONTE CARTA */
+        .brand-text-bottom {
+            font-size: 0.42rem;
+            font-weight: 900;
+            color: #f43f5e;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        /* FRONTE CARTA MODERNO E PULITO */
         .card.revealed {
             background: #ffffff;
         }
@@ -329,49 +340,44 @@
             position: relative;
         }
 
-        /* OVALE CENTRALE */
-        .card-oval {
-            width: 32px;
-            height: 48px;
-            background-color: white;
-            border-radius: 50%;
-            transform: rotate(-25deg);
+        .card-center-box {
+            width: 28px;
+            height: 38px;
+            background-color: #ffffff;
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: inset 0 0 2px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
         }
 
         .card-num-main {
             font-size: 1.2rem;
-            font-weight: 900;
-            transform: rotate(25deg);
-            font-style: italic;
+            font-weight: 800;
         }
 
         .card-num-mini {
             position: absolute;
             font-size: 0.55rem;
-            font-weight: bold;
-            color: white;
-            text-shadow: 0px 1px 1px rgba(0,0,0,0.6);
+            font-weight: 800;
+            color: #ffffff;
         }
 
-        .card-num-mini.top-left { top: 2px; left: 3px; }
-        .card-num-mini.bottom-right { bottom: 2px; right: 3px; transform: rotate(180deg); }
+        .card-num-mini.top-left { top: 3px; left: 4px; }
+        .card-num-mini.bottom-right { bottom: 3px; right: 4px; transform: rotate(180deg); }
 
-        /* COLORI DIVERSI PER I NUMERI DELLE CARTE */
-        .card-red { background-color: #ef4444; }
-        .card-red .card-num-main { color: #ef4444; }
+        /* NUOVA PALETTE CROMATICA STORE-SAFE */
+        .card-purple { background-color: #8b5cf6; }
+        .card-purple .card-num-main { color: #8b5cf6; }
 
-        .card-blue { background-color: #3b82f6; }
-        .card-blue .card-num-main { color: #3b82f6; }
+        .card-cyan { background-color: #06b6d4; }
+        .card-cyan .card-num-main { color: #06b6d4; }
 
-        .card-green { background-color: #10b981; }
-        .card-green .card-num-main { color: #10b981; }
+        .card-orange { background-color: #f97316; }
+        .card-orange .card-num-main { color: #f97316; }
 
-        .card-yellow { background-color: #eab308; }
-        .card-yellow .card-num-main { color: #eab308; }
+        .card-lime { background-color: #84cc16; }
+        .card-lime .card-num-main { color: #84cc16; }
 
         .center-info {
             position: absolute;
@@ -395,7 +401,7 @@
 
     <!-- SCHERMATA 1: MENU PRINCIPALE -->
     <div id="main-menu" class="screen active">
-        <div class="menu-title">🎮 Salotto Giochi</div>
+        <div class="menu-title">🎮 MazioGames</div>
 
         <div class="menu-section">
             <div class="menu-label">1. Scegli il Gioco</div>
@@ -715,7 +721,7 @@
         let lastUserFlippedCard = -1;
         let lastAiFlippedCard = -1;
 
-        const colorsList = ['card-red', 'card-blue', 'card-green', 'card-yellow'];
+        const colorsList = ['card-purple', 'card-cyan', 'card-orange', 'card-lime'];
 
         function initMemory() {
             cardsValues = shuffle([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
@@ -752,12 +758,18 @@
                 
                 if (!revealedState[i]) {
                     card.classList.add('covered');
+                    card.innerHTML = `
+                        <div class="card-brand">
+                            <span class="brand-text-top">MAZIO</span>
+                            <span class="brand-text-bottom">GAMES</span>
+                        </div>
+                    `;
                 } else {
                     card.classList.add('revealed', cardColors[i]);
                     card.innerHTML = `
                         <div class="card-inner">
                             <div class="card-num-mini top-left">${cardsValues[i]}</div>
-                            <div class="card-oval">
+                            <div class="card-center-box">
                                 <span class="card-num-main">${cardsValues[i]}</span>
                             </div>
                             <div class="card-num-mini bottom-right">${cardsValues[i]}</div>
