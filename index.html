@@ -350,9 +350,9 @@
         <div class="menu-section">
             <div class="menu-label">2. Scegli la Modalità</div>
             <div class="option-group">
-                <!-- INVERTITII I PULSANTI -->
-                <button class="select-btn" id="btn-mode-ai" onclick="selectMode('ai')">🤖 vs IA</button>
-                <button class="select-btn active" id="btn-mode-pvp" onclick="selectMode('pvp')">👥 2 Giocatori</button>
+                <!-- PREIMPOSTATO SU IA -->
+                <button class="select-btn active" id="btn-mode-ai" onclick="selectMode('ai')">🤖 vs IA</button>
+                <button class="select-btn" id="btn-mode-pvp" onclick="selectMode('pvp')">👥 2 Giocatori</button>
             </div>
         </div>
 
@@ -360,7 +360,7 @@
             <div class="menu-label">3. Nomi Giocatori</div>
             <div class="name-input-group">
                 <input type="text" id="player1-name" class="name-input" placeholder="Nome Giocatore 1" value="Giocatore 1">
-                <input type="text" id="player2-name" class="name-input" placeholder="Nome Giocatore 2" value="Giocatore 2">
+                <input type="text" id="player2-name" class="name-input" placeholder="Nome Giocatore 2" value="🤖 IA" disabled>
             </div>
         </div>
 
@@ -424,11 +424,11 @@
     </div>
 
     <script>
-        // CONFIGURAZIONE GENERALE
+        // CONFIGURAZIONE GENERALE (Preimpostato vs IA)
         let selectedGame = 'tris';
-        let selectedMode = 'pvp';
+        let selectedMode = 'ai';
         let nameP1 = "Giocatore 1";
-        let nameP2 = "Giocatore 2";
+        let nameP2 = "🤖 IA";
 
         function selectGame(game) {
             selectedGame = game;
@@ -484,7 +484,7 @@
         }
 
         // ==========================================
-        // MOTORE DADO 3D FISICO CON MAPPA CORRETTA
+        // MOTORE DADO 3D FISICO (MAPPATURA CORRETTA)
         // ==========================================
         let scene, camera, renderer, world;
         let diceMesh, diceBody;
@@ -500,6 +500,7 @@
         let touchStartPos = { x: 0, y: 0, time: 0 };
         let canThrow = true;
 
+        // Rotazioni per orientare perfettamente la faccia target verso la telecamera inclinata
         const faceRotationsToFront = {
             1: new THREE.Euler(0, -Math.PI / 2, 0),
             2: new THREE.Euler(0, Math.PI / 2, 0),
@@ -589,6 +590,7 @@
             addWall(-4.5, 0, Math.PI / 2);
             addWall(4.5, 0, -Math.PI / 2);
 
+            // Mesh cubo Three.js ordine facce: +X (1), -X (2), +Y (3), -Y (4), +Z (5), -Z (6)
             const materials = [
                 new THREE.MeshStandardMaterial({ map: createDiceTexture(1) }),
                 new THREE.MeshStandardMaterial({ map: createDiceTexture(2) }),
@@ -689,6 +691,7 @@
         }
 
         function getDiceValue() {
+            // Vettori normali locali per le 6 facce del cubo
             const normals = [
                 { val: 1, vec: new THREE.Vector3(1, 0, 0) },
                 { val: 2, vec: new THREE.Vector3(-1, 0, 0) },
@@ -700,11 +703,13 @@
 
             let maxDot = -Infinity;
             let result = 1;
-            const up = new THREE.Vector3(0, 1, 0);
+            
+            // Calcola la direzione verso la telecamera per determinare esattamente quale faccia guarda l'utente
+            const camDir = new THREE.Vector3().subVectors(camera.position, diceMesh.position).normalize();
 
             normals.forEach(n => {
                 const worldVec = n.vec.clone().applyQuaternion(diceMesh.quaternion);
-                const dot = worldVec.dot(up);
+                const dot = worldVec.dot(camDir);
                 if (dot > maxDot) {
                     maxDot = dot;
                     result = n.val;
