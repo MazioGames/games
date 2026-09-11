@@ -260,11 +260,11 @@
         .cell.X { color: var(--player1-color); }
         .cell.O { color: var(--player2-color); }
 
-        /* --- MEMORY OROLOGIO --- */
+        /* --- MEMORY STILO CARTE --- */
         .circle-container {
             position: relative;
-            width: 270px;
-            height: 270px;
+            width: 280px;
+            height: 280px;
             margin: 0 auto;
             flex-grow: 1;
             display: flex;
@@ -272,40 +272,106 @@
             justify-content: center;
         }
 
+        /* STRUTTURA CARTA */
         .card {
             position: absolute;
-            width: 44px;
-            height: 44px;
-            background: #ffffff;
-            border: 2px solid #cbd5e1;
-            border-radius: 50%;
+            width: 42px;
+            height: 60px;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.25);
+            user-select: none;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.1rem;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            user-select: none;
-            transition: background 0.2s;
+            transition: transform 0.2s;
+            overflow: hidden;
+            border: 2px solid white;
         }
 
+        /* RETRO CARTA IN STILE "UNO" */
         .card.covered {
-            background: #3b82f6;
-            color: transparent;
-            border-color: #1d4ed8;
+            background: #1e1e1e;
+        }
+
+        .card.covered::before {
+            content: '';
+            position: absolute;
+            width: 32px;
+            height: 50px;
+            background: linear-gradient(135deg, #e11d48, #d97706);
+            border-radius: 50%;
+            transform: rotate(-25deg);
         }
 
         .card.covered::after {
-            content: '❓';
-            font-size: 0.85rem;
+            content: 'UNO';
+            position: absolute;
+            font-size: 0.6rem;
+            font-weight: 900;
+            color: #facc15;
+            font-style: italic;
+            text-shadow: 1px 1px 0px #000;
+            transform: rotate(-25deg);
         }
 
+        /* FRONTE CARTA */
         .card.revealed {
             background: #ffffff;
-            color: var(--primary);
-            border-color: #10b981;
         }
+
+        .card-inner {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* OVALE CENTRALE */
+        .card-oval {
+            width: 32px;
+            height: 48px;
+            background-color: white;
+            border-radius: 50%;
+            transform: rotate(-25deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 0 2px rgba(0,0,0,0.2);
+        }
+
+        .card-num-main {
+            font-size: 1.2rem;
+            font-weight: 900;
+            transform: rotate(25deg);
+            font-style: italic;
+        }
+
+        .card-num-mini {
+            position: absolute;
+            font-size: 0.55rem;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0px 1px 1px rgba(0,0,0,0.6);
+        }
+
+        .card-num-mini.top-left { top: 2px; left: 3px; }
+        .card-num-mini.bottom-right { bottom: 2px; right: 3px; transform: rotate(180deg); }
+
+        /* COLORI DIVERSI PER I NUMERI DELLE CARTE */
+        .card-red { background-color: #ef4444; }
+        .card-red .card-num-main { color: #ef4444; }
+
+        .card-blue { background-color: #3b82f6; }
+        .card-blue .card-num-main { color: #3b82f6; }
+
+        .card-green { background-color: #10b981; }
+        .card-green .card-num-main { color: #10b981; }
+
+        .card-yellow { background-color: #eab308; }
+        .card-yellow .card-num-main { color: #eab308; }
 
         .center-info {
             position: absolute;
@@ -406,8 +472,8 @@
 
     <script>
         // --- SELEZIONI MENU ---
-        let selectedGame = 'tris'; // 'tris' o 'memory'
-        let selectedMode = 'pvp'; // 'pvp' o 'ai'
+        let selectedGame = 'tris';
+        let selectedMode = 'pvp';
 
         function selectGame(game) {
             selectedGame = game;
@@ -641,17 +707,28 @@
         let memPlayer = 1;
         let targetValue = 0;
         let cardsValues = [];
+        let cardColors = [];
         let revealedState = Array(10).fill(false);
         let aiMemory = Array(10).fill(null);
         let isMemLock = false;
 
+        let lastUserFlippedCard = -1;
+        let lastAiFlippedCard = -1;
+
+        const colorsList = ['card-red', 'card-blue', 'card-green', 'card-yellow'];
+
         function initMemory() {
             cardsValues = shuffle([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+            cardColors = cardsValues.map(() => colorsList[Math.floor(Math.random() * colorsList.length)]);
+            
             revealedState.fill(false);
             aiMemory.fill(null);
             targetValue = 0;
             memPlayer = 1;
             isMemLock = false;
+
+            lastUserFlippedCard = -1;
+            lastAiFlippedCard = -1;
 
             document.getElementById('target-val').textContent = targetValue;
             updateMemStatus();
@@ -672,10 +749,22 @@
 
                 const card = document.createElement('div');
                 card.classList.add('card');
-                if (!revealedState[i]) card.classList.add('covered');
-                else card.classList.add('revealed');
+                
+                if (!revealedState[i]) {
+                    card.classList.add('covered');
+                } else {
+                    card.classList.add('revealed', cardColors[i]);
+                    card.innerHTML = `
+                        <div class="card-inner">
+                            <div class="card-num-mini top-left">${cardsValues[i]}</div>
+                            <div class="card-oval">
+                                <span class="card-num-main">${cardsValues[i]}</span>
+                            </div>
+                            <div class="card-num-mini bottom-right">${cardsValues[i]}</div>
+                        </div>
+                    `;
+                }
 
-                card.textContent = cardsValues[i];
                 card.style.transform = `translate(${x}px, ${y}px)`;
                 card.addEventListener('click', () => handleCardClick(i));
 
@@ -687,6 +776,10 @@
             if (isMemLock || revealedState[index]) return;
             if (selectedMode === 'ai' && memPlayer === 2) return;
 
+            if (memPlayer === 1) {
+                lastUserFlippedCard = index;
+            }
+
             processTurn(index);
         }
 
@@ -694,7 +787,14 @@
             isMemLock = true;
             const val = cardsValues[index];
 
-            aiMemory[index] = val;
+            if (memPlayer === 2 && selectedMode === 'ai') {
+                lastAiFlippedCard = index;
+            }
+
+            if (Math.random() < 0.60) {
+                aiMemory[index] = val;
+            }
+
             revealedState[index] = true;
             renderCircleCards();
 
@@ -714,6 +814,12 @@
                 }
             } else {
                 setTimeout(() => {
+                    for (let i = 0; i < 10; i++) {
+                        if (aiMemory[i] !== null && Math.random() < 0.30) {
+                            aiMemory[i] = null;
+                        }
+                    }
+
                     revealedState.fill(false);
                     targetValue = 0;
                     document.getElementById('target-val').textContent = targetValue;
@@ -734,23 +840,32 @@
         function memAiTurn() {
             if (isMemLock || targetValue > 9) return;
 
-            let chosenIndex = aiMemory.indexOf(targetValue);
+            let validIndices = [];
+            for (let i = 0; i < 10; i++) {
+                if (!revealedState[i] && i !== lastUserFlippedCard && i !== lastAiFlippedCard) {
+                    validIndices.push(i);
+                }
+            }
 
-            if (chosenIndex === -1 || revealedState[chosenIndex]) {
-                let candidateIndices = [];
+            if (validIndices.length === 0) {
                 for (let i = 0; i < 10; i++) {
-                    if (!revealedState[i] && aiMemory[i] === null) {
-                        candidateIndices.push(i);
-                    }
+                    if (!revealedState[i]) validIndices.push(i);
                 }
+            }
 
-                if (candidateIndices.length === 0) {
-                    for (let i = 0; i < 10; i++) {
-                        if (!revealedState[i]) candidateIndices.push(i);
-                    }
+            let chosenIndex = -1;
+
+            let rememberedIndex = aiMemory.indexOf(targetValue);
+            if (rememberedIndex !== -1 && validIndices.includes(rememberedIndex)) {
+                chosenIndex = rememberedIndex;
+            } else {
+                let unknownValidIndices = validIndices.filter(i => aiMemory[i] === null);
+
+                if (unknownValidIndices.length > 0) {
+                    chosenIndex = unknownValidIndices[Math.floor(Math.random() * unknownValidIndices.length)];
+                } else {
+                    chosenIndex = validIndices[Math.floor(Math.random() * validIndices.length)];
                 }
-
-                chosenIndex = candidateIndices[Math.floor(Math.random() * candidateIndices.length)];
             }
 
             processTurn(chosenIndex);
