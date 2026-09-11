@@ -50,15 +50,15 @@
         #main-menu {
             align-items: center;
             justify-content: center;
-            gap: 14px;
+            gap: 12px;
             text-align: center;
         }
 
-        .menu-title { font-size: 1.6rem; font-weight: bold; margin-bottom: 4px; }
+        .menu-title { font-size: 1.6rem; font-weight: bold; margin-bottom: 2px; }
 
         .menu-section {
             width: 100%;
-            max-width: 300px;
+            max-width: 320px;
             background: white;
             padding: 10px 12px;
             border-radius: 12px;
@@ -70,12 +70,12 @@
 
         .menu-label { font-size: 0.8rem; font-weight: bold; color: #64748b; text-transform: uppercase; }
 
-        .option-group { display: flex; gap: 8px; }
+        .option-group { display: flex; gap: 6px; flex-wrap: wrap; }
 
         .select-btn {
-            flex: 1;
-            padding: 8px;
-            font-size: 0.85rem;
+            flex: 1 1 30%;
+            padding: 8px 4px;
+            font-size: 0.78rem;
             font-weight: bold;
             border: 2px solid #cbd5e1;
             background: white;
@@ -102,7 +102,7 @@
 
         .start-btn {
             width: 100%;
-            max-width: 300px;
+            max-width: 320px;
             padding: 12px;
             font-size: 1.1rem;
             font-weight: bold;
@@ -169,8 +169,6 @@
             touch-action: none;
             cursor: grab;
         }
-
-        #dice-container:active { cursor: grabbing; }
 
         .dice-instruction {
             position: absolute;
@@ -331,6 +329,32 @@
         .center-info { position: absolute; text-align: center; pointer-events: none; }
         .target-num { font-size: 0.75rem; color: #64748b; }
         .target-val { font-size: 1.8rem; font-weight: bold; color: #10b981; }
+
+        /* QUIXO 3D AREA */
+        #quixo-container {
+            width: 100%;
+            flex-grow: 1;
+            background: #cbd5e1;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.15);
+            touch-action: none;
+        }
+
+        .quixo-instruction {
+            position: absolute;
+            top: 8px;
+            width: 100%;
+            text-align: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: #1e293b;
+            z-index: 10;
+            pointer-events: none;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 4px 0;
+        }
     </style>
 </head>
 <body>
@@ -343,14 +367,14 @@
             <div class="menu-label">1. Scegli il Gioco</div>
             <div class="option-group">
                 <button class="select-btn active" id="btn-game-tris" onclick="selectGame('tris')">🎲 Tris Dado 3D</button>
-                <button class="select-btn" id="btn-game-memory" onclick="selectGame('memory')">⏱️ Memory (0-9)</button>
+                <button class="select-btn" id="btn-game-memory" onclick="selectGame('memory')">⏱️ Memory</button>
+                <button class="select-btn" id="btn-game-quixo" onclick="selectGame('quixo')">🧊 Scorri Cubi 3D</button>
             </div>
         </div>
 
         <div class="menu-section">
             <div class="menu-label">2. Scegli la Modalità</div>
             <div class="option-group">
-                <!-- PREIMPOSTATO SU IA -->
                 <button class="select-btn active" id="btn-mode-ai" onclick="selectMode('ai')">🤖 vs IA</button>
                 <button class="select-btn" id="btn-mode-pvp" onclick="selectMode('pvp')">👥 2 Giocatori</button>
             </div>
@@ -379,7 +403,6 @@
             <div class="status" id="dice-status">Uscito: -</div>
         </div>
 
-        <!-- AREA DADO 3D -->
         <div id="dice-container">
             <div class="dice-instruction" id="dice-instruction">👆 Trascina o fai uno swipe sul dado per lanciarlo!</div>
         </div>
@@ -423,6 +446,26 @@
         </footer>
     </div>
 
+    <!-- SCHERMATA QUIXO 3D -->
+    <div id="game-quixo" class="screen">
+        <header>
+            <div class="game-title">🧊 Scorri Cubi 3D (5x5)</div>
+            <button class="back-btn" onclick="showMenu()">🏠 Menu</button>
+        </header>
+
+        <div class="controls">
+            <div class="status" id="quixo-status">Turno: P1 (X)</div>
+        </div>
+
+        <div id="quixo-container">
+            <div class="quixo-instruction" id="quixo-instruction">Preleva un cubo dal bordo e trascinalo per spingere!</div>
+        </div>
+
+        <footer>
+            <button class="action-btn reset-btn" onclick="resetQuixo()">Nuova Partita</button>
+        </footer>
+    </div>
+
     <script>
         // CONFIGURAZIONE GENERALE (Preimpostato vs IA)
         let selectedGame = 'tris';
@@ -434,6 +477,7 @@
             selectedGame = game;
             document.getElementById('btn-game-tris').classList.toggle('active', game === 'tris');
             document.getElementById('btn-game-memory').classList.toggle('active', game === 'memory');
+            document.getElementById('btn-game-quixo').classList.toggle('active', game === 'quixo');
         }
 
         function selectMode(mode) {
@@ -463,9 +507,15 @@
                     init3DDice();
                     resetTris();
                 }, 100);
-            } else {
+            } else if (selectedGame === 'memory') {
                 document.getElementById('game-memory').classList.add('active');
                 resetMemory();
+            } else if (selectedGame === 'quixo') {
+                document.getElementById('game-quixo').classList.add('active');
+                setTimeout(() => {
+                    initQuixo3D();
+                    resetQuixo();
+                }, 100);
             }
         }
 
@@ -484,7 +534,7 @@
         }
 
         // ==========================================
-        // MOTORE DADO 3D FISICO (MAPPATURA CORRETTA)
+        // MOTORE DADO 3D FISICO
         // ==========================================
         let scene, camera, renderer, world;
         let diceMesh, diceBody;
@@ -500,7 +550,6 @@
         let touchStartPos = { x: 0, y: 0, time: 0 };
         let canThrow = true;
 
-        // Rotazioni per orientare perfettamente la faccia target verso la telecamera inclinata
         const faceRotationsToFront = {
             1: new THREE.Euler(0, -Math.PI / 2, 0),
             2: new THREE.Euler(0, Math.PI / 2, 0),
@@ -590,7 +639,6 @@
             addWall(-4.5, 0, Math.PI / 2);
             addWall(4.5, 0, -Math.PI / 2);
 
-            // Mesh cubo Three.js ordine facce: +X (1), -X (2), +Y (3), -Y (4), +Z (5), -Z (6)
             const materials = [
                 new THREE.MeshStandardMaterial({ map: createDiceTexture(1) }),
                 new THREE.MeshStandardMaterial({ map: createDiceTexture(2) }),
@@ -691,7 +739,6 @@
         }
 
         function getDiceValue() {
-            // Vettori normali locali per le 6 facce del cubo
             const normals = [
                 { val: 1, vec: new THREE.Vector3(1, 0, 0) },
                 { val: 2, vec: new THREE.Vector3(-1, 0, 0) },
@@ -703,8 +750,6 @@
 
             let maxDot = -Infinity;
             let result = 1;
-            
-            // Calcola la direzione verso la telecamera per determinare esattamente quale faccia guarda l'utente
             const camDir = new THREE.Vector3().subVectors(camera.position, diceMesh.position).normalize();
 
             normals.forEach(n => {
@@ -1106,6 +1151,366 @@
 
         function resetMemory() {
             initMemory();
+        }
+
+        // ==========================================
+        // QUIXO 3D (SCORRI CUBI 5x5)
+        // ==========================================
+        let qScene, qCamera, qRenderer;
+        let qCubes = []; // 5x5 array di mesh
+        let qGrid = [];  // Array logico 5x5 ('', 'X', 'O')
+        let quixoPlayer = 'X'; // 'X' (Rosso, P1) o 'O' (Blu, P2/IA)
+        let isQuixoOver = false;
+        let selectedCube = null; // {r, c}
+        let isQuixoInited = false;
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+        let dragStart = null;
+
+        function createQuixoTexture(symbol) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, 128, 128);
+            ctx.lineWidth = 10;
+            ctx.strokeStyle = '#94a3b8';
+            ctx.strokeRect(0, 0, 128, 128);
+
+            if (symbol === 'X') {
+                ctx.strokeStyle = '#ef4444';
+                ctx.lineWidth = 18;
+                ctx.beginPath();
+                ctx.moveTo(30, 30); ctx.lineTo(98, 98);
+                ctx.moveTo(98, 30); ctx.lineTo(30, 98);
+                ctx.stroke();
+            } else if (symbol === 'O') {
+                ctx.strokeStyle = '#3b82f6';
+                ctx.lineWidth = 18;
+                ctx.beginPath();
+                ctx.arc(64, 64, 36, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        const texBlank = createQuixoTexture('');
+        const texX = createQuixoTexture('X');
+        const texO = createQuixoTexture('O');
+
+        function initQuixo3D() {
+            const container = document.getElementById('quixo-container');
+            if (isQuixoInited) {
+                qRenderer.setSize(container.clientWidth, container.clientHeight);
+                return;
+            }
+            isQuixoInited = true;
+
+            qScene = new THREE.Scene();
+            qScene.background = new THREE.Color(0xcbd5e1);
+
+            qCamera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+            qCamera.position.set(0, 12, 10);
+            qCamera.lookAt(0, 0, 0);
+
+            qRenderer = new THREE.WebGLRenderer({ antialias: true });
+            qRenderer.setSize(container.clientWidth, container.clientHeight);
+            qRenderer.shadowMap.enabled = true;
+            container.appendChild(qRenderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+            qScene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
+            dirLight.position.set(5, 12, 7);
+            qScene.add(dirLight);
+
+            // Griglia 5x5 Cubi
+            const cubeGeo = new THREE.BoxGeometry(1.1, 1.1, 1.1);
+
+            qCubes = [];
+            for (let r = 0; r < 5; r++) {
+                qCubes[r] = [];
+                for (let c = 0; c < 5; c++) {
+                    const mat = new THREE.MeshStandardMaterial({ map: texBlank });
+                    const mesh = new THREE.Mesh(cubeGeo, mat);
+                    mesh.position.set((c - 2) * 1.35, 0.55, (r - 2) * 1.35);
+                    mesh.userData = { r, c };
+                    qScene.add(mesh);
+                    qCubes[r][c] = mesh;
+                }
+            }
+
+            // Piano base
+            const boardGeo = new THREE.BoxGeometry(7.2, 0.3, 7.2);
+            const boardMat = new THREE.MeshStandardMaterial({ color: 0x475569 });
+            const boardMesh = new THREE.Mesh(boardGeo, boardMat);
+            boardMesh.position.set(0, -0.15, 0);
+            qScene.add(boardMesh);
+
+            container.addEventListener('pointerdown', handleQuixoPointerDown);
+            container.addEventListener('pointerup', handleQuixoPointerUp);
+
+            animateQuixo();
+        }
+
+        function animateQuixo() {
+            requestAnimationFrame(animateQuixo);
+            if (qRenderer && qScene && qCamera) {
+                qRenderer.render(qScene, qCamera);
+            }
+        }
+
+        function handleQuixoPointerDown(e) {
+            if (isQuixoOver) return;
+            if (selectedMode === 'ai' && quixoPlayer === 'O') return;
+
+            const rect = qRenderer.domElement.getBoundingClientRect();
+            mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, qCamera);
+            const intersects = raycaster.intersectObjects(qScene.children);
+
+            for (let hit of intersects) {
+                if (hit.object.userData && hit.object.userData.r !== undefined) {
+                    const { r, c } = hit.object.userData;
+                    // Il cubo prelevabile deve essere sul bordo
+                    if (r === 0 || r === 4 || c === 0 || c === 4) {
+                        const currentSymbol = qGrid[r][c];
+                        if (currentSymbol === '' || currentSymbol === quixoPlayer) {
+                            selectedCube = { r, c };
+                            dragStart = { x: e.clientX, y: e.clientY };
+                            document.getElementById('quixo-instruction').textContent = `Cubo (${r+1},${c+1}) selezionato! Trascina per spingere.`;
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+        function handleQuixoPointerUp(e) {
+            if (!selectedCube || !dragStart || isQuixoOver) return;
+
+            const dx = e.clientX - dragStart.x;
+            const dy = e.clientY - dragStart.y;
+            const threshold = 25;
+
+            if (Math.abs(dx) > threshold || Math.abs(dy) > threshold) {
+                let direction = null; // 'TOP', 'BOTTOM', 'LEFT', 'RIGHT'
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    direction = dx > 0 ? 'RIGHT' : 'LEFT';
+                } else {
+                    direction = dy > 0 ? 'BOTTOM' : 'TOP';
+                }
+
+                executeQuixoMove(selectedCube.r, selectedCube.c, direction);
+            }
+
+            selectedCube = null;
+            dragStart = null;
+        }
+
+        function executeQuixoMove(r, c, direction) {
+            // Verifica se la spinta è valida (spinge verso l'interno)
+            let valid = false;
+
+            if (direction === 'RIGHT' && c < 4) valid = slideRow(r, c, 4);
+            else if (direction === 'LEFT' && c > 0) valid = slideRow(r, c, 0);
+            else if (direction === 'BOTTOM' && r < 4) valid = slideCol(c, r, 4);
+            else if (direction === 'TOP' && r > 0) valid = slideCol(c, r, 0);
+
+            if (valid) {
+                updateQuixoVisuals();
+                checkQuixoWin();
+
+                if (!isQuixoOver) {
+                    quixoPlayer = quixoPlayer === 'X' ? 'O' : 'X';
+                    updateQuixoStatus();
+
+                    if (selectedMode === 'ai' && quixoPlayer === 'O') {
+                        setTimeout(quixoAiTurn, 800);
+                    }
+                }
+            } else {
+                document.getElementById('quixo-instruction').textContent = "Mossa non valida! Spingi verso l'interno.";
+            }
+        }
+
+        function slideRow(r, startC, targetC) {
+            if (startC === targetC) return false;
+            const mySymbol = quixoPlayer;
+            
+            if (targetC === 4) { // Spinge verso Destra
+                for (let c = startC; c < 4; c++) qGrid[r][c] = qGrid[r][c + 1];
+                qGrid[r][4] = mySymbol;
+            } else { // Spinge verso Sinistra
+                for (let c = startC; c > 0; c--) qGrid[r][c] = qGrid[r][c - 1];
+                qGrid[r][0] = mySymbol;
+            }
+            return true;
+        }
+
+        function slideCol(c, startR, targetR) {
+            if (startR === targetR) return false;
+            const mySymbol = quixoPlayer;
+
+            if (targetR === 4) { // Spinge verso il Basso
+                for (let r = startR; r < 4; r++) qGrid[r][c] = qGrid[r + 1][c];
+                qGrid[4][c] = mySymbol;
+            } else { // Spinge verso l'Alto
+                for (let r = startR; r > 0; r--) qGrid[r][c] = qGrid[r - 1][c];
+                qGrid[0][c] = mySymbol;
+            }
+            return true;
+        }
+
+        function updateQuixoVisuals() {
+            for (let r = 0; r < 5; r++) {
+                for (let c = 0; c < 5; c++) {
+                    const sym = qGrid[r][c];
+                    let tex = texBlank;
+                    if (sym === 'X') tex = texX;
+                    if (sym === 'O') tex = texO;
+                    qCubes[r][c].material.map = tex;
+                    qCubes[r][c].material.needsUpdate = true;
+                }
+            }
+        }
+
+        function checkQuixoWin() {
+            let xWins = has5InRow('X');
+            let oWins = has5InRow('O');
+
+            if (xWins || oWins) {
+                isQuixoOver = true;
+                let winnerName = "";
+                if (xWins && oWins) {
+                    // Se entrambi fanno 5 in fila, vince chi NON ha fatto la mossa
+                    winnerName = quixoPlayer === 'X' ? nameP2 : nameP1;
+                } else if (xWins) {
+                    winnerName = nameP1;
+                } else {
+                    winnerName = nameP2;
+                }
+
+                document.getElementById('quixo-status').textContent = `🎉 ${winnerName} Vince!`;
+                document.getElementById('quixo-instruction').textContent = "Partita Conclusa!";
+            }
+        }
+
+        function has5InRow(p) {
+            // Righe e Colonne
+            for (let i = 0; i < 5; i++) {
+                if (qGrid[i].every(val => val === p)) return true;
+                if ([0,1,2,3,4].every(r => qGrid[r][i] === p)) return true;
+            }
+            // Diagonali
+            if ([0,1,2,3,4].every(i => qGrid[i][i] === p)) return true;
+            if ([0,1,2,3,4].every(i => qGrid[i][4 - i] === p)) return true;
+
+            return false;
+        }
+
+        function quixoAiTurn() {
+            if (isQuixoOver) return;
+
+            document.getElementById('quixo-instruction').textContent = "🤖 L'IA sta pensando la mossa...";
+
+            // Genera tutte le mosse valide
+            let validMoves = [];
+            for (let r = 0; r < 5; r++) {
+                for (let c = 0; c < 5; c++) {
+                    if (r === 0 || r === 4 || c === 0 || c === 4) {
+                        if (qGrid[r][c] === '' || qGrid[r][c] === 'O') {
+                            const dirs = [];
+                            if (c < 4) dirs.push('RIGHT');
+                            if (c > 0) dirs.push('LEFT');
+                            if (r < 4) dirs.push('BOTTOM');
+                            if (r > 0) dirs.push('TOP');
+                            dirs.forEach(d => validMoves.push({ r, c, d }));
+                        }
+                    }
+                }
+            }
+
+            // IA Intelligente: Valuta la mossa migliore
+            let bestMove = null;
+
+            // 1. Cerca una mossa vincente per 'O'
+            for (let m of validMoves) {
+                let tempGrid = qGrid.map(row => [...row]);
+                simulatedSlide(tempGrid, 'O', m.r, m.c, m.d);
+                if (checkGridWin(tempGrid, 'O')) {
+                    bestMove = m;
+                    break;
+                }
+            }
+
+            // 2. Cerca di bloccare una mossa vincente imminente di 'X'
+            if (!bestMove) {
+                for (let m of validMoves) {
+                    let tempGrid = qGrid.map(row => [...row]);
+                    simulatedSlide(tempGrid, 'O', m.r, m.c, m.d);
+                    if (!checkGridWin(tempGrid, 'X')) {
+                        bestMove = m;
+                    }
+                }
+            }
+
+            // 3. Fallback mossa casuale
+            if (!bestMove && validMoves.length > 0) {
+                bestMove = validMoves[Math.floor(Math.random() * validMoves.length)];
+            }
+
+            if (bestMove) {
+                executeQuixoMove(bestMove.r, bestMove.c, bestMove.d);
+            }
+        }
+
+        function simulatedSlide(grid, p, r, c, dir) {
+            if (dir === 'RIGHT') {
+                for (let i = c; i < 4; i++) grid[r][i] = grid[r][i + 1];
+                grid[r][4] = p;
+            } else if (dir === 'LEFT') {
+                for (let i = c; i > 0; i--) grid[r][i] = grid[r][i - 1];
+                grid[r][0] = p;
+            } else if (dir === 'BOTTOM') {
+                for (let i = r; i < 4; i++) grid[i][c] = grid[i + 1][c];
+                grid[4][c] = p;
+            } else if (dir === 'TOP') {
+                for (let i = r; i > 0; i--) grid[i][c] = grid[i - 1][c];
+                grid[0][c] = p;
+            }
+        }
+
+        function checkGridWin(grid, p) {
+            for (let i = 0; i < 5; i++) {
+                if (grid[i].every(val => val === p)) return true;
+                if ([0,1,2,3,4].every(r => grid[r][i] === p)) return true;
+            }
+            if ([0,1,2,3,4].every(i => grid[i][i] === p)) return true;
+            if ([0,1,2,3,4].every(i => grid[i][4 - i] === p)) return true;
+            return false;
+        }
+
+        function updateQuixoStatus() {
+            const currentName = quixoPlayer === 'X' ? `${nameP1} (❌)` : `${nameP2} (⭕)`;
+            document.getElementById('quixo-status').textContent = `Turno: ${currentName}`;
+            if (quixoPlayer === 'X' || selectedMode === 'pvp') {
+                document.getElementById('quixo-instruction').textContent = "Preleva un cubo dal bordo e trascinalo per spingere!";
+            }
+        }
+
+        function resetQuixo() {
+            quixoPlayer = 'X';
+            isQuixoOver = false;
+            qGrid = Array(5).fill(null).map(() => Array(5).fill(''));
+            updateQuixoVisuals();
+            updateQuixoStatus();
         }
     </script>
 </body>
