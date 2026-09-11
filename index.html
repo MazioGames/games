@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MazioGames Salotto</title>
-    <!-- Librerie per il 3D e la Fisica -->
+    <!-- Librerie per 3D e Fisica -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
     <style>
@@ -44,11 +44,9 @@
             height: 100%;
         }
 
-        .screen.active {
-            display: flex;
-        }
+        .screen.active { display: flex; }
 
-        /* --- SCHERMATA MENU PRINCIPALE --- */
+        /* MENU PRINCIPALE */
         #main-menu {
             align-items: center;
             justify-content: center;
@@ -56,11 +54,7 @@
             text-align: center;
         }
 
-        .menu-title {
-            font-size: 1.6rem;
-            font-weight: bold;
-            margin-bottom: 4px;
-        }
+        .menu-title { font-size: 1.6rem; font-weight: bold; margin-bottom: 4px; }
 
         .menu-section {
             width: 100%;
@@ -74,17 +68,9 @@
             gap: 8px;
         }
 
-        .menu-label {
-            font-size: 0.8rem;
-            font-weight: bold;
-            color: #64748b;
-            text-transform: uppercase;
-        }
+        .menu-label { font-size: 0.8rem; font-weight: bold; color: #64748b; text-transform: uppercase; }
 
-        .option-group {
-            display: flex;
-            gap: 8px;
-        }
+        .option-group { display: flex; gap: 8px; }
 
         .select-btn {
             flex: 1;
@@ -98,17 +84,9 @@
             color: #475569;
         }
 
-        .select-btn.active {
-            border-color: var(--primary);
-            background: var(--primary);
-            color: white;
-        }
+        .select-btn.active { border-color: var(--primary); background: var(--primary); color: white; }
 
-        .name-input-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
+        .name-input-group { display: flex; flex-direction: column; gap: 6px; }
 
         .name-input {
             width: 100%;
@@ -136,15 +114,8 @@
             box-shadow: 0 3px 6px rgba(0,0,0,0.1);
         }
 
-        /* --- STILI DI GIOCO GENERALI --- */
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-shrink: 0;
-            margin-bottom: 4px;
-        }
-
+        /* STILI GENERALI DI GIOCO */
+        header { display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; margin-bottom: 4px; }
         .game-title { font-size: 1rem; font-weight: bold; }
 
         .back-btn {
@@ -184,33 +155,31 @@
 
         .reset-btn { background-color: #ef4444; padding: 4px 12px; font-size: 0.75rem; }
 
-        footer {
-            display: flex;
-            justify-content: center;
-            flex-shrink: 0;
-            padding-top: 2px;
-        }
+        footer { display: flex; justify-content: center; flex-shrink: 0; padding-top: 2px; }
 
-        /* --- CANVAS DADO 3D --- */
+        /* AREA CANVAS DADO 3D */
         #dice-container {
             width: 100%;
-            height: 140px;
+            height: 150px;
             background: #cbd5e1;
             border-radius: 10px;
             position: relative;
             overflow: hidden;
             box-shadow: inset 0 2px 6px rgba(0,0,0,0.15);
             touch-action: none;
+            cursor: grab;
         }
+
+        #dice-container:active { cursor: grabbing; }
 
         .dice-instruction {
             position: absolute;
             top: 6px;
             width: 100%;
             text-align: center;
-            font-size: 0.7rem;
+            font-size: 0.75rem;
             font-weight: bold;
-            color: #475569;
+            color: #334155;
             pointer-events: none;
             z-index: 10;
         }
@@ -234,11 +203,7 @@
             gap: 3px;
         }
 
-        .column-headers {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 2px;
-        }
+        .column-headers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
 
         .header-cell {
             text-align: center;
@@ -250,11 +215,7 @@
             color: #475569;
         }
 
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 3px;
-        }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; }
 
         .cell {
             aspect-ratio: 1;
@@ -273,7 +234,7 @@
         .cell.X { color: var(--player1-color); }
         .cell.O { color: var(--player2-color); }
 
-        /* --- MEMORY --- */
+        /* MEMORY */
         .circle-container {
             position: relative;
             width: 310px;
@@ -417,9 +378,9 @@
             <div class="status" id="dice-status">Uscito: -</div>
         </div>
 
-        <!-- CONTENITORE FISICO 3D DADO -->
+        <!-- AREA DADO 3D -->
         <div id="dice-container">
-            <div class="dice-instruction" id="dice-instruction">👆 Trascina il dado con il dito per lanciarlo!</div>
+            <div class="dice-instruction" id="dice-instruction">👆 Trascina o fai uno swipe sul dado per lanciarlo!</div>
         </div>
 
         <div class="boards-wrapper">
@@ -462,7 +423,7 @@
     </div>
 
     <script>
-        // --- SELEZIONE E STATO GENERALE ---
+        // CONFIGURAZIONE GENERALE
         let selectedGame = 'tris';
         let selectedMode = 'pvp';
         let nameP1 = "Giocatore 1";
@@ -522,7 +483,7 @@
         }
 
         // ==========================================
-        // DADO 3D CON THREE.JS E CANNON.JS
+        // MOTORE DADO 3D FISICO
         // ==========================================
         let scene, camera, renderer, world;
         let diceMesh, diceBody;
@@ -539,11 +500,11 @@
 
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, 128, 128);
-            ctx.lineWidth = 10;
+            ctx.lineWidth = 8;
             ctx.strokeStyle = '#cbd5e1';
             ctx.strokeRect(0, 0, 128, 128);
 
-            ctx.fillStyle = '#1e293b';
+            ctx.fillStyle = '#0f172a';
             const dots = {
                 1: [[64, 64]],
                 2: [[32, 32], [96, 96]],
@@ -555,7 +516,7 @@
 
             dots[number].forEach(([x, y]) => {
                 ctx.beginPath();
-                ctx.arc(x, y, 12, 0, Math.PI * 2);
+                ctx.arc(x, y, 13, 0, Math.PI * 2);
                 ctx.fill();
             });
 
@@ -570,12 +531,11 @@
             }
             is3dInited = true;
 
-            // Scena e Camera
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0xcbd5e1);
 
-            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
-            camera.position.set(0, 9, 11);
+            camera = new THREE.PerspectiveCamera(40, container.clientWidth / container.clientHeight, 0.1, 100);
+            camera.position.set(0, 8.5, 9);
             camera.lookAt(0, 0, 0);
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -583,40 +543,37 @@
             renderer.shadowMap.enabled = true;
             container.appendChild(renderer.domElement);
 
-            // Luci
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
             scene.add(ambientLight);
 
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
-            dirLight.position.set(5, 12, 7);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
+            dirLight.position.set(3, 10, 5);
             dirLight.castShadow = true;
             scene.add(dirLight);
 
-            // Mondo Fisico Cannon.js
             world = new CANNON.World();
-            world.gravity.set(0, -28, 0);
+            world.gravity.set(0, -30, 0);
 
-            // Piano / Pavimento
+            // Pavimento fisico
             const floorShape = new CANNON.Plane();
             const floorBody = new CANNON.Body({ mass: 0 });
             floorBody.addShape(floorShape);
             floorBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
             world.addBody(floorBody);
 
-            // Muri invisibili della scatola
-            const createWall = (x, z, rotY) => {
-                const wallBody = new CANNON.Body({ mass: 0 });
-                wallBody.addShape(new CANNON.Plane());
-                wallBody.position.set(x, 0, z);
-                wallBody.quaternion.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), rotY);
-                world.addBody(wallBody);
+            // Pareti di contenimento
+            const addWall = (x, z, rotY) => {
+                const wall = new CANNON.Body({ mass: 0 });
+                wall.addShape(new CANNON.Plane());
+                wall.position.set(x, 0, z);
+                wall.quaternion.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), rotY);
+                world.addBody(wall);
             };
-            createWall(0, -4, 0);
-            createWall(0, 4, Math.PI);
-            createWall(-6, 0, Math.PI / 2);
-            createWall(6, 0, -Math.PI / 2);
+            addWall(0, -3.5, 0);
+            addWall(0, 3.5, Math.PI);
+            addWall(-4.5, 0, Math.PI / 2);
+            addWall(4.5, 0, -Math.PI / 2);
 
-            // Materiali facce dado (Right=1, Left=2, Top=3, Bottom=4, Front=5, Back=6)
             const materials = [
                 new THREE.MeshStandardMaterial({ map: createDiceTexture(1) }),
                 new THREE.MeshStandardMaterial({ map: createDiceTexture(2) }),
@@ -626,19 +583,18 @@
                 new THREE.MeshStandardMaterial({ map: createDiceTexture(6) })
             ];
 
-            const diceGeo = new THREE.BoxGeometry(2, 2, 2);
+            const diceGeo = new THREE.BoxGeometry(1.8, 1.8, 1.8);
             diceMesh = new THREE.Mesh(diceGeo, materials);
             diceMesh.castShadow = true;
             scene.add(diceMesh);
 
-            // Fisica Dado
-            const diceShape = new CANNON.Box(new CANNON.Vec3(1, 1, 1));
+            const diceShape = new CANNON.Box(new CANNON.Vec3(0.9, 0.9, 0.9));
             diceBody = new CANNON.Body({ mass: 1 });
             diceBody.addShape(diceShape);
-            diceBody.position.set(0, 1.2, 0);
+            diceBody.position.set(0, 1, 0);
             world.addBody(diceBody);
 
-            // Gestione Input Tocco / Gesture
+            // EVENTI TOUCH / MOUSE PER IL LANCIO
             container.addEventListener('pointerdown', handlePointerDown);
             container.addEventListener('pointerup', handlePointerUp);
 
@@ -660,33 +616,40 @@
 
             const dx = e.clientX - touchStartPos.x;
             const dy = e.clientY - touchStartPos.y;
-            const dt = (Date.now() - touchStartPos.time) / 1000;
+            const dt = Math.max((Date.now() - touchStartPos.time) / 1000, 0.05);
 
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist > 15 && dt < 0.6) { // Gesture swipe valida
-                const vx = (dx / dt) * 0.02;
-                const vz = (dy / dt) * 0.02;
-                throw3DDice(vx, Math.max(12, Math.abs(dy * 0.1)), vz);
+            // Calcola velocità del trascinamento
+            let vx = (dx / dt) * 0.015;
+            let vz = (dy / dt) * 0.015;
+
+            // Se è un semplice tocco o movimento impercettibile, dai una spinta standard
+            if (Math.abs(dx) < 5 && Math.abs(dy) < 5) {
+                vx = (Math.random() - 0.5) * 4;
+                vz = -8;
             }
+
+            throw3DDice(vx, 14, vz);
         }
 
-        function throw3DDice(vx = 0, vy = 14, vz = -10) {
+        function throw3DDice(vx, vy, vz) {
             isDiceRolling = true;
             canThrow = false;
             document.getElementById('dice-instruction').textContent = "🎲 Il dado sta rotolando...";
 
-            // Resetta posizione e spingi dado
-            diceBody.position.set((Math.random() - 0.5) * 2, 2.5, 2);
+            // Resetta al centro ed eleva leggermente
+            diceBody.position.set(0, 2.2, 0);
+            
+            // Forza fisica
             diceBody.velocity.set(
                 Math.min(Math.max(vx, -8), 8),
-                Math.min(Math.max(vy, 10), 18),
-                Math.min(Math.max(vz, -14), -6)
+                Math.min(Math.max(vy, 10), 16),
+                Math.min(Math.max(vz, -10), 10)
             );
 
             diceBody.angularVelocity.set(
-                (Math.random() - 0.5) * 25,
-                (Math.random() - 0.5) * 25,
-                (Math.random() - 0.5) * 25
+                (Math.random() - 0.5) * 30 + 10,
+                (Math.random() - 0.5) * 30,
+                (Math.random() - 0.5) * 30 + 10
             );
 
             checkDiceStopped();
@@ -695,10 +658,20 @@
         function checkDiceStopped() {
             const checkInterval = setInterval(() => {
                 const speed = diceBody.velocity.length() + diceBody.angularVelocity.length();
-                if (speed < 0.2 && diceBody.position.y < 1.3) {
+                if (speed < 0.25 && diceBody.position.y < 1.3) {
                     clearInterval(checkInterval);
-                    isDiceRolling = false;
+                    
+                    // Frena del tutto il corpo fisico
+                    diceBody.velocity.set(0, 0, 0);
+                    diceBody.angularVelocity.set(0, 0, 0);
+
+                    // Calcola il numero uscito
                     const rolledValue = getDiceValue();
+                    
+                    // Assesta perfettamente il dado dritto a terra (SNAP 90 Gradi)
+                    snapDiceToNearestAxis();
+
+                    isDiceRolling = false;
                     document.getElementById('dice-status').textContent = `Uscito: ${rolledValue}`;
                     currentRoll = rolledValue;
                     highlightValidColumns();
@@ -708,7 +681,6 @@
         }
 
         function getDiceValue() {
-            // Vettori locali direzionali delle facce
             const normals = [
                 { val: 1, vec: new THREE.Vector3(1, 0, 0) },
                 { val: 2, vec: new THREE.Vector3(-1, 0, 0) },
@@ -734,21 +706,39 @@
             return result;
         }
 
+        // Allinea perfettamente la rotazione del dado agli assi ortogonali
+        function snapDiceToNearestAxis() {
+            const euler = new THREE.Euler().setFromQuaternion(diceMesh.quaternion, 'YXZ');
+            const snap = (angle) => Math.round(angle / (Math.PI / 2)) * (Math.PI / 2);
+
+            const targetX = snap(euler.x);
+            const targetY = snap(euler.y);
+            const targetZ = snap(euler.z);
+
+            const targetQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(targetX, targetY, targetZ, 'YXZ'));
+            
+            // Applica la rotazione perfetta e la posizione piatta
+            diceBody.quaternion.copy(targetQuat);
+            diceMesh.quaternion.copy(targetQuat);
+            diceBody.position.y = 0.9;
+        }
+
         function animate3D() {
             requestAnimationFrame(animate3D);
             if (world) {
                 world.step(1 / 60);
-                diceMesh.position.copy(diceBody.position);
-                diceMesh.quaternion.copy(diceBody.quaternion);
+                if (isDiceRolling) {
+                    diceMesh.position.copy(diceBody.position);
+                    diceMesh.quaternion.copy(diceBody.quaternion);
+                }
             }
             if (renderer && scene && camera) {
                 renderer.render(scene, camera);
             }
         }
 
-
         // ==========================================
-        // LOGICA TRIS CON DADO
+        // LOGICA TRIS
         // ==========================================
         const diceSymbols = ['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
         let trisPlayer = 'X';
@@ -821,7 +811,7 @@
                 if (checkWin(arr, trisPlayer)) {
                     const winnerName = trisPlayer === 'X' ? nameP1 : nameP2;
                     document.getElementById('tris-status').textContent = `🎉 ${winnerName} Vince!`;
-                    document.getElementById('dice-instruction').textContent = "Partita Terminata!";
+                    document.getElementById('dice-instruction').textContent = "Partita Conclusa!";
                     isTrisOver = true;
                     clearHighlights();
                     return;
@@ -849,7 +839,7 @@
 
             if (!valid) {
                 setTimeout(() => {
-                    alert(`Nessuna mossa disponibile per il dado ${currentRoll}! Turno saltato.`);
+                    alert(`Nessuna casella libera per la colonna del ${currentRoll}! Turno saltato.`);
                     trisPlayer = trisPlayer === 'X' ? 'O' : 'X';
                     currentRoll = null;
                     document.getElementById('dice-status').textContent = 'Uscito: -';
@@ -862,8 +852,8 @@
         }
 
         function trisAiTurn() {
-            document.getElementById('dice-instruction').textContent = "🤖 L'IA sta lanciando il dado 3D...";
-            throw3DDice((Math.random() - 0.5) * 4, 14, -10);
+            document.getElementById('dice-instruction').textContent = "🤖 L'IA sta lanciando il dado...";
+            throw3DDice((Math.random() - 0.5) * 4, 14, -6);
 
             const checkAiDone = setInterval(() => {
                 if (!isDiceRolling && currentRoll !== null) {
@@ -891,7 +881,7 @@
                 const currentName = trisPlayer === 'X' ? nameP1 : nameP2;
                 document.getElementById('tris-status').textContent = `Turno: ${currentName}`;
                 if (trisPlayer === 'X' || selectedMode === 'pvp') {
-                    document.getElementById('dice-instruction').textContent = "👆 Trascina il dado con il dito per lanciarlo!";
+                    document.getElementById('dice-instruction').textContent = "👆 Trascina o fai uno swipe sul dado per lanciarlo!";
                 }
             }
         }
@@ -914,7 +904,6 @@
             initTris();
             renderTris();
         }
-
 
         // ==========================================
         // LOGICA MEMORY
