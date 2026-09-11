@@ -350,8 +350,9 @@
         <div class="menu-section">
             <div class="menu-label">2. Scegli la Modalità</div>
             <div class="option-group">
-                <button class="select-btn active" id="btn-mode-pvp" onclick="selectMode('pvp')">👥 2 Giocatori</button>
+                <!-- INVERTITII I PULSANTI -->
                 <button class="select-btn" id="btn-mode-ai" onclick="selectMode('ai')">🤖 vs IA</button>
+                <button class="select-btn active" id="btn-mode-pvp" onclick="selectMode('pvp')">👥 2 Giocatori</button>
             </div>
         </div>
 
@@ -483,7 +484,7 @@
         }
 
         // ==========================================
-        // MOTORE DADO 3D FISICO CON MAPPA CORRETTA AL 100%
+        // MOTORE DADO 3D FISICO CON MAPPA CORRETTA
         // ==========================================
         let scene, camera, renderer, world;
         let diceMesh, diceBody;
@@ -499,24 +500,13 @@
         let touchStartPos = { x: 0, y: 0, time: 0 };
         let canThrow = true;
 
-        /*
-         ORDINE STANDARD THREE.JS BOX GEOMETRY:
-         Material 0: +X (Right)  -> Numero 1
-         Material 1: -X (Left)   -> Numero 2
-         Material 2: +Y (Top)    -> Numero 3
-         Material 3: -Y (Bottom) -> Numero 4
-         Material 4: +Z (Front)  -> Numero 5
-         Material 5: -Z (Back)   -> Numero 6
-        */
-
-        // Rotazioni esatte per mostrare direttamente la faccia di interesse di fronte alla telecamera
         const faceRotationsToFront = {
-            1: new THREE.Euler(0, -Math.PI / 2, 0), // Ruota +X davanti
-            2: new THREE.Euler(0, Math.PI / 2, 0),  // Ruota -X davanti
-            3: new THREE.Euler(Math.PI / 2, 0, 0),  // Ruota +Y davanti
-            4: new THREE.Euler(-Math.PI / 2, 0, 0), // Ruota -Y davanti
-            5: new THREE.Euler(0, 0, 0),            // +Z è già davanti
-            6: new THREE.Euler(0, Math.PI, 0)       // Ruota -Z davanti
+            1: new THREE.Euler(0, -Math.PI / 2, 0),
+            2: new THREE.Euler(0, Math.PI / 2, 0),
+            3: new THREE.Euler(Math.PI / 2, 0, 0),
+            4: new THREE.Euler(-Math.PI / 2, 0, 0),
+            5: new THREE.Euler(0, 0, 0),
+            6: new THREE.Euler(0, Math.PI, 0)
         };
 
         function createDiceTexture(number) {
@@ -581,14 +571,12 @@
             world = new CANNON.World();
             world.gravity.set(0, -30, 0);
 
-            // Pavimento
             const floorShape = new CANNON.Plane();
             const floorBody = new CANNON.Body({ mass: 0 });
             floorBody.addShape(floorShape);
             floorBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
             world.addBody(floorBody);
 
-            // Pareti di contenimento
             const addWall = (x, z, rotY) => {
                 const wall = new CANNON.Body({ mass: 0 });
                 wall.addShape(new CANNON.Plane());
@@ -601,14 +589,13 @@
             addWall(-4.5, 0, Math.PI / 2);
             addWall(4.5, 0, -Math.PI / 2);
 
-            // Mappatura Three.js standard
             const materials = [
-                new THREE.MeshStandardMaterial({ map: createDiceTexture(1) }), // +X
-                new THREE.MeshStandardMaterial({ map: createDiceTexture(2) }), // -X
-                new THREE.MeshStandardMaterial({ map: createDiceTexture(3) }), // +Y
-                new THREE.MeshStandardMaterial({ map: createDiceTexture(4) }), // -Y
-                new THREE.MeshStandardMaterial({ map: createDiceTexture(5) }), // +Z
-                new THREE.MeshStandardMaterial({ map: createDiceTexture(6) })  // -Z
+                new THREE.MeshStandardMaterial({ map: createDiceTexture(1) }),
+                new THREE.MeshStandardMaterial({ map: createDiceTexture(2) }),
+                new THREE.MeshStandardMaterial({ map: createDiceTexture(3) }),
+                new THREE.MeshStandardMaterial({ map: createDiceTexture(4) }),
+                new THREE.MeshStandardMaterial({ map: createDiceTexture(5) }),
+                new THREE.MeshStandardMaterial({ map: createDiceTexture(6) })
             ];
 
             const diceGeo = new THREE.BoxGeometry(1.8, 1.8, 1.8);
@@ -622,7 +609,6 @@
             diceBody.position.set(0, 0.9, 1.2);
             world.addBody(diceBody);
 
-            // Posizione iniziale
             alignFaceToCamera(1, false);
 
             container.addEventListener('pointerdown', handlePointerDown);
@@ -691,28 +677,25 @@
                     diceBody.velocity.set(0, 0, 0);
                     diceBody.angularVelocity.set(0, 0, 0);
 
-                    // Calcola quale faccia è finita verso l'alto (+Y)
                     const rolledValue = getDiceValue();
 
                     isDiceRolling = false;
                     document.getElementById('dice-status').textContent = `Uscito: ${rolledValue}`;
                     currentRoll = rolledValue;
 
-                    // Ruota esattamente la faccia "rolledValue" frontalmente
                     alignFaceToCamera(rolledValue, true);
                 }
             }, 100);
         }
 
-        // Determina la faccia rivolta verso l'alto al termine del movimento fisico
         function getDiceValue() {
             const normals = [
-                { val: 1, vec: new THREE.Vector3(1, 0, 0) },  // +X
-                { val: 2, vec: new THREE.Vector3(-1, 0, 0) }, // -X
-                { val: 3, vec: new THREE.Vector3(0, 1, 0) },  // +Y
-                { val: 4, vec: new THREE.Vector3(0, -1, 0) }, // -Y
-                { val: 5, vec: new THREE.Vector3(0, 0, 1) },  // +Z
-                { val: 6, vec: new THREE.Vector3(0, 0, -1) }  // -Z
+                { val: 1, vec: new THREE.Vector3(1, 0, 0) },
+                { val: 2, vec: new THREE.Vector3(-1, 0, 0) },
+                { val: 3, vec: new THREE.Vector3(0, 1, 0) },
+                { val: 4, vec: new THREE.Vector3(0, -1, 0) },
+                { val: 5, vec: new THREE.Vector3(0, 0, 1) },
+                { val: 6, vec: new THREE.Vector3(0, 0, -1) }
             ];
 
             let maxDot = -Infinity;
@@ -731,11 +714,8 @@
             return result;
         }
 
-        // Ruota la faccia "faceNumber" completamente di fronte all'osservatore
         function alignFaceToCamera(faceNumber, animate = true) {
             const baseEuler = faceRotationsToFront[faceNumber];
-            
-            // Compensa l'angolo di inclinazione della camera per mostrarla piatta al 100%
             const cameraTilt = new THREE.Euler(Math.atan2(camera.position.y, camera.position.z), 0, 0);
 
             targetQuat.setFromEuler(baseEuler);
